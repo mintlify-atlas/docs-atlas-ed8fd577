@@ -1,5 +1,5 @@
 ---
-title: "NAMASTE Code Endpoints — List and Retrieve"
+title: "NAMASTE Code Endpoints — List All and Retrieve One"
 sidebarTitle: "NAMASTE Codes"
 description: "GET /namaste returns all NAMASTE codes. GET /namaste/{code} returns a specific code with display, definition, and AYUSH system fields."
 ---
@@ -168,5 +168,5 @@ The following codes are included in `sample-namaste.csv` and are loaded at start
 | NAM-006 | Skin Rash        | Ayurveda  |
 
 <Info>
-  NAMASTE codes are loaded from `sample-namaste.csv` at application startup. The CSV uses four columns in this order: `code`, `display`, `definition`, `system`. The bundled file ships with 100 codes spanning Ayurveda (NAM-001 – NAM-026), Siddha (NAM-027 – NAM-070), and Unani (NAM-071 – NAM-100). If the database already contains NAMASTE codes on startup, the CSV load is skipped and the existing rows are used instead.
+  NAMASTE codes are loaded from `sample-namaste.csv` at application startup. The CSV uses four columns in this order: `code`, `display`, `definition`, `system`. The bundled file ships with 100 codes: 24 Ayurveda, 45 Siddha, and 31 Unani entries. System assignments are not strictly sequential — for example, NAM-004 is Siddha and NAM-005 is Unani, both appearing within the first six rows. If the database already contains NAMASTE codes on startup, the CSV load is skipped and the existing rows are used instead.
 </Info>

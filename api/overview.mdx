@@ -1,7 +1,7 @@
 ---
-title: "Ayush Synapse REST API Overview"
+title: "Ayush Synapse REST API: Full Endpoint Index and Reference"
 sidebarTitle: "Overview"
-description: "Complete reference for the Ayush Synapse REST API. Covers base URL, authentication, content types, response formats, and a full endpoint index."
+description: "Complete index of all Ayush Synapse API routes: base URL, authentication requirements, JSON response shapes, and HTTP status codes."
 ---
 
 The Ayush Synapse REST API exposes endpoints for NAMASTE and ICD-11 code lookup, concept mapping, FHIR resources, and system operations. All responses are JSON. The API is FHIR R4-compliant and supports multilingual access across Indian healthcare coding systems.
@@ -31,6 +31,7 @@ Requests missing this header on body-bearing endpoints (e.g., `POST /translate`)
 
 | Method | Path | Auth Required | Description |
 |--------|------|:-------------:|-------------|
+| `GET` | `/` | No | Serve the main `index.html` static page |
 | `GET` | `/api` | No | API overview and feature summary |
 | `POST` | `/auth/login` | No | Obtain a JWT token |
 | `GET` | `/namaste` | No\* | List all NAMASTE codes |
@@ -49,9 +50,12 @@ Requests missing this header on body-bearing endpoints (e.g., `POST /translate`)
 | `GET` | `/api/search` | No | Search frontend (supports `?q=`, `?system=`, `?mapping=`) |
 | `GET` | `/api/stats` | No | Mapping coverage statistics |
 | `GET` | `/i18n/{lang}.json` | No | Translation files for multilingual UI |
+| `GET` | `/swagger.yaml` | No | Serve the raw OpenAPI / Swagger YAML file |
+| `GET` | `/api-documentation` | No | Serve the `api-documentation.html` static page |
+| `GET` | `/api/docs` | No | Interactive Swagger UI (requires `flask-swagger-ui`) |
+| `GET` | `/demo/guide` | No | Step-by-step demo instructions |
 | `GET` | `/health` | No | Basic health check |
 | `GET` | `/health/detailed` | No | Detailed health check including service status |
-| `GET` | `/demo/guide` | No | Step-by-step demo instructions |
 
 <Note>
   **\* Demo mode vs. production** — Endpoints marked with an asterisk are protected by JWT authentication in production deployments (`DEMO_MODE=False`). When the server runs in demo mode (`DEMO_MODE=True`, the default), all endpoints are accessible without a token. See [Authentication](/api/authentication) for details.

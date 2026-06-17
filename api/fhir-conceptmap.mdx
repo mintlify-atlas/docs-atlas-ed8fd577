@@ -1,5 +1,5 @@
 ---
-title: "FHIR ConceptMap — NAMASTE to ICD-11 Mappings"
+title: "FHIR R4 ConceptMap — NAMASTE to ICD-11 Concept Mappings"
 sidebarTitle: "ConceptMap"
 description: "GET /conceptmap returns a FHIR R4 ConceptMap resource describing all NAMASTE-to-ICD-11 mappings, including source URI, target URI, and equivalence types."
 ---
@@ -113,5 +113,5 @@ The `sourceUri` and `targetUri` fields identify the code systems participating i
 These URIs are also set as the `source` and `target` properties on the `group` object inside the ConceptMap, conforming to the FHIR R4 `ConceptMap.group` structure.
 
 <Info>
-  The ConceptMap includes all 85+ concept mappings. If you need a simpler JSON format without the FHIR resource wrapping, use [GET /mappings](/api/mappings) instead.
+  The ConceptMap includes all 85 concept mappings. If you need a simpler JSON format without the FHIR resource wrapping, use [GET /mappings](/api/mappings) instead.
 </Info>

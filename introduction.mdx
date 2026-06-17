@@ -1,7 +1,7 @@
 ---
 title: "Ayush Synapse: Medical Coding Integration Platform"
 sidebarTitle: "Introduction"
-description: "Ayush Synapse bridges NAMASTE traditional medicine codes with ICD-11 TM2 standards, delivering FHIR R4 compliance and multilingual support for Indian EMR systems."
+description: "Ayush Synapse bridges NAMASTE codes with ICD-11 TM2 standards, delivering FHIR R4 compliance and multilingual support for Indian EMR systems."
 ---
 
 ## What is Ayush Synapse?
@@ -51,7 +51,7 @@ Ayush Synapse is a single-process **Flask REST API** that initialises all requir
 
 Authentication is handled by a dedicated `AuthService` that issues **JWT tokens** validated on every protected request. Rate limiting (200 requests/day, 50/hour by default, stricter limits on translate and bundle endpoints) is enforced via Flask-Limiter. CORS is configurable via the `CORS_ORIGINS` environment variable, defaulting to open for local development. The entire stack ships with a **Docker Compose** file for one-command cloud deployment.
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │                  Flask App                  │
 │                                             │

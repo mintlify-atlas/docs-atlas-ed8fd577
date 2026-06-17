@@ -1,7 +1,7 @@
 ---
-title: "Rate Limits for Ayush Synapse API Endpoints"
+title: "Ayush Synapse API Rate Limits and Request Throttling"
 sidebarTitle: "Rate Limits"
-description: "Ayush Synapse enforces per-IP rate limits via Flask-Limiter. Default limits are 200 requests per day and 50 per hour, with tighter limits on search and translation."
+description: "Flask-Limiter enforces per-IP rate limits on Ayush Synapse: 200 req/day and 50 req/hour globally, with tighter limits on search and translation."
 ---
 
 Rate limiting is handled by **Flask-Limiter**, keyed by the client's remote IP address. Limits are applied globally to all endpoints, with stricter per-route overrides on computationally intensive operations.

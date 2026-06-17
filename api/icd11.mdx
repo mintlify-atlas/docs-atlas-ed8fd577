@@ -1,7 +1,7 @@
 ---
-title: "ICD-11 Code Endpoints — TM2 and Biomedicine"
+title: "ICD-11 Code Endpoints — Browse TM2 and Biomedicine"
 sidebarTitle: "ICD-11 Codes"
-description: "Endpoints for listing and searching ICD-11 Traditional Medicine Module 2 (TM2) and Biomedicine codes. GET /icd11, /icd11/tm2, /icd11/biomedicine, /icd11/search/{term}."
+description: "GET /icd11 returns all ICD-11 codes. Use /icd11/tm2 or /icd11/biomedicine to filter by chapter, or /icd11/search/{term} to find codes by keyword."
 ---
 
 The ICD-11 endpoints expose codes from two chapters of the International Classification of Diseases, 11th Revision: **Traditional Medicine Module 2** (TM2, codes prefixed `TM2-`) and **Biomedicine** (codes prefixed `BM-`). In the current MVP, six sample codes per chapter are returned by the `WhoApiService`. Production deployments can integrate directly with the WHO ICD-11 API by supplying a valid `WHO_API_KEY` environment variable.

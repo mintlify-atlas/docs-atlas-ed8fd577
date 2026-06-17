@@ -1,5 +1,5 @@
 ---
-title: "Search Across NAMASTE and ICD-11 Coding Systems"
+title: "Search NAMASTE and ICD-11 Codes Across AYUSH Systems"
 sidebarTitle: "Search"
 description: "GET /api/search queries NAMASTE and ICD-11 codes simultaneously. Filter by system (Ayurveda, Siddha, Unani, TM2, Biomedicine) and mapping status."
 ---
@@ -103,7 +103,7 @@ const results = await response.json();
     "Definition": "Fever or elevated body temperature",
     "System": "Ayurveda",
     "Target_Code": "TM2-007",
-    "Target_Display": "TM2-007"
+    "Target_Display": "Not Mapped"
   },
   {
     "NAMASTE_Code": "N/A",
@@ -166,7 +166,7 @@ curl "http://localhost:5000/api/search?q=fever&mapping=mapped"
     "Definition": "Fever or elevated body temperature",
     "System": "Ayurveda",
     "Target_Code": "TM2-007",
-    "Target_Display": "TM2-007"
+    "Target_Display": "Not Mapped"
   }
 ]
 ```

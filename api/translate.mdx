@@ -1,6 +1,6 @@
 ---
 title: "POST /translate — Translate Between Coding Systems"
-sidebarTitle: "POST /translate"
+sidebarTitle: "Translate"
 description: "POST /translate maps a NAMASTE source code to its ICD-11 equivalent. Returns the target code, target system, equivalence, and confidence score."
 ---
 
@@ -49,10 +49,11 @@ The `/translate` endpoint performs a concept lookup against the loaded mappings,
 
 | Status | Condition |
 |---|---|
-| `400 Bad Request` | `sourceCode` or `sourceSystem` is missing, empty, or not a string. |
+| `400 Bad Request` | `sourceCode` or `sourceSystem` is missing or empty — returns `"Validation failed"` with a `details` array. |
+| `400 Bad Request` | `sourceCode` or `sourceSystem` is present but not a string type — returns `"Invalid input format"`. |
 | `404 Not Found` | No mapping exists for the provided `sourceCode` / `sourceSystem` pair. |
 
-A `400` response includes a `details` array listing each validation failure:
+A `400` from missing or empty fields includes a `details` array listing each validation failure:
 
 ```json 400 — Validation Error
 {
@@ -60,6 +61,14 @@ A `400` response includes a `details` array listing each validation failure:
   "details": [
     "Missing required field: sourceCode"
   ]
+}
+```
+
+A `400` from a non-string value returns a flat error object (no `details` array):
+
+```json 400 — Invalid Input Format
+{
+  "error": "Invalid input format"
 }
 ```
 
@@ -109,12 +118,12 @@ console.log(result);
 
 ## Validation
 
-Both `sourceCode` and `sourceSystem` are validated before the lookup is performed:
+Both `sourceCode` and `sourceSystem` are validated in two sequential steps before the lookup is performed:
 
-- **Presence** — Both fields must exist in the request body and must not be empty.
-- **Type** — Both values must be strings. Passing a number or `null` triggers a `400` response.
+1. **Presence check** — Both fields must exist in the request body and must not be empty. Failures here return `{"error": "Validation failed", "details": [...]}` with an array that names every missing field.
+2. **Type check** — Both values must be strings. Passing a number, `null`, or any non-string type triggers a separate `{"error": "Invalid input format"}` response with no `details` array.
 
-When validation fails, the response body includes a `details` array that enumerates every field-level error, making it straightforward to surface specific problems to the caller.
+The two-step design means a caller may receive either error shape depending on which check fails first.
 
 <Note>
   Currently only the **NAMASTE → ICD-11** translation direction is supported. Reverse lookups (ICD-11 → NAMASTE) are not yet implemented and will return a `404` if attempted.

@@ -1,7 +1,7 @@
 ---
-title: "Public Health Dashboard for Patient-Facing Search"
+title: "Ayush Synapse Public Dashboard for Patient-Facing Search"
 sidebarTitle: "Public"
-description: "The Public Dashboard offers a simple, multilingual condition search for non-technical users, providing health awareness content and NAMASTE-ICD-11 mappings."
+description: "Browse NAMASTE and ICD-11 condition codes in your language with the Public Dashboard's simple search and health awareness content."
 ---
 
 The Public Dashboard (served at `/public.html`) is designed for general users, patients, and community health workers who need a straightforward interface to look up medical conditions without any technical knowledge of coding systems. The dashboard keeps clinical terminology out of the way and surfaces plain-language condition names, their AYUSH-system labels, and corresponding ICD-11 mappings in a clean, accessible layout that works equally well in English or any of 16 Indian languages.
@@ -10,7 +10,7 @@ The Public Dashboard (served at `/public.html`) is designed for general users, p
 
 Start the Ayush Synapse server and navigate to:
 
-```
+```text
 http://localhost:5000/public.html
 ```
 
@@ -45,7 +45,7 @@ No login, token, or configuration is required. The page loads instantly and is r
   <Accordion title="Multilingual Interface" icon="language">
     The Public Dashboard exposes a language selector that covers all 16 Indian languages served by:
 
-    ```
+    ```text
     GET /i18n/{lang}.json
     ```
 
