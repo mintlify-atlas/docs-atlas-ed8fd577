@@ -1,0 +1,99 @@
+---
+title: "GET /api/stats — Mapping Coverage Statistics"
+sidebarTitle: "GET /api/stats"
+description: "GET /api/stats returns NAMASTE and ICD-11 code counts, mapping coverage numbers, and coverage percentage for dashboard analytics."
+---
+
+The `/api/stats` endpoint returns aggregate statistics about the coding system coverage. The response is used by the professional and technical dashboards for analytics visualization, including mapping coverage charts and system-level breakdowns.
+
+## Endpoint
+
+**Method:** `GET`  
+**Path:** `/api/stats`  
+**Auth:** None
+
+## Response
+
+<ResponseField name="namaste_codes" type="object">
+  Statistics about the loaded NAMASTE code set.
+
+  <Expandable title="namaste_codes fields">
+    <ResponseField name="namaste_codes.total" type="integer">
+      Total number of NAMASTE codes loaded into the system.
+    </ResponseField>
+
+    <ResponseField name="namaste_codes.by_system" type="object">
+      A breakdown of NAMASTE codes by their AYUSH subsystem (e.g. `Ayurveda`, `Siddha`, `Unani`). Keys are system names and values are integer counts.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="icd11_codes" type="object">
+  Statistics about the loaded ICD-11 code sets.
+
+  <Expandable title="icd11_codes fields">
+    <ResponseField name="icd11_codes.tm2_total" type="integer">
+      Total number of ICD-11 TM2 codes available.
+    </ResponseField>
+
+    <ResponseField name="icd11_codes.biomedicine_total" type="integer">
+      Total number of ICD-11 Biomedicine codes available.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mappings" type="object">
+  Statistics about concept mapping coverage.
+
+  <Expandable title="mappings fields">
+    <ResponseField name="mappings.mapped" type="integer">
+      Number of NAMASTE codes that have at least one ICD-11 mapping.
+    </ResponseField>
+
+    <ResponseField name="mappings.unmapped" type="integer">
+      Number of NAMASTE codes with no ICD-11 mapping.
+    </ResponseField>
+
+    <ResponseField name="mappings.coverage_percentage" type="number">
+      Percentage of NAMASTE codes that have a mapping, rounded to two decimal places. Calculated as `(mapped / total) * 100`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/api/stats
+```
+
+```javascript JavaScript
+const response = await fetch('/api/stats');
+const stats = await response.json();
+console.log(stats);
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "namaste_codes": {
+    "total": 100,
+    "by_system": {
+      "Ayurveda": 60,
+      "Siddha": 25,
+      "Unani": 15
+    }
+  },
+  "icd11_codes": {
+    "tm2_total": 50,
+    "biomedicine_total": 40
+  },
+  "mappings": {
+    "mapped": 85,
+    "unmapped": 15,
+    "coverage_percentage": 85.0
+  }
+}
+```

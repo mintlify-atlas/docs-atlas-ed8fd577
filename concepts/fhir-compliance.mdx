@@ -1,0 +1,184 @@
+---
+title: "FHIR R4 Compliance in Ayush Synapse"
+sidebarTitle: "FHIR Compliance"
+description: "Ayush Synapse exposes FHIR R4 CodeSystem, ConceptMap, and Bundle resources, enabling standards-based exchange with FHIR-compatible EMR systems."
+---
+
+Ayush Synapse implements **FHIR R4** (Fast Healthcare Interoperability Resources, Release 4) as the wire format for all medical coding resources it exposes. By serialising NAMASTE codes, ICD-11 codes, and their mappings as standard FHIR resources, Ayush Synapse satisfies India's **2016 Electronic Health Record (EHR) Standards** requirement that all health information systems use internationally recognised interoperability frameworks. Any FHIR-compatible EMR, clinical decision support system, or analytics platform can consume Ayush Synapse responses without any proprietary adapters.
+
+---
+
+## Supported FHIR Resources
+
+<CardGroup cols={3}>
+  <Card title="CodeSystem" icon="code">
+    Represents the NAMASTE and ICD-11 vocabularies as FHIR CodeSystem resources, each with a unique canonical URL and a list of coded concepts including `code`, `display`, and `definition`.
+  </Card>
+  <Card title="ConceptMap" icon="arrows-left-right">
+    Encodes the directional mappings from NAMASTE source codes to ICD-11 TM2 and Biomedicine target codes, including equivalence type and confidence score per mapping group element.
+  </Card>
+  <Card title="Bundle" icon="layer-group">
+    Accepts inbound FHIR Bundle resources via `POST /bundle`, processing each entry for dual coding — storing both the original NAMASTE code and the automatically resolved ICD-11 code in the clinical record.
+  </Card>
+</CardGroup>
+
+---
+
+## CodeSystem
+
+A FHIR **CodeSystem** resource defines a set of codes and their meanings. Ayush Synapse publishes two CodeSystem resources:
+
+- **NAMASTE CodeSystem** — the full set of NAMASTE codes loaded from `sample-namaste.csv`, identified by the canonical URL `http://example.com/codesystem/namaste-codes`.
+- **ICD-11 CodeSystem** — a combined list of TM2 and Biomedicine codes returned by `WhoApiService`, identified by the canonical URL `http://who.int/icd11/tm2`.
+
+Each `concept` entry in both CodeSystems contains the three FHIR-required fields:
+
+| FHIR Field   | Source Model Field | Description                              |
+|--------------|--------------------|------------------------------------------|
+| `code`       | `code`             | The coded identifier (e.g., `NAM-001`)   |
+| `display`    | `display`          | Short human-readable label               |
+| `definition` | `definition`       | Plain-language clinical description      |
+
+### Endpoint
+
+```
+GET /codesystem/namaste
+```
+
+**Example response (abbreviated):**
+
+```json
+{
+  "resourceType": "CodeSystem",
+  "id": "namaste-codes",
+  "url": "http://example.com/codesystem/namaste-codes",
+  "name": "NAMASTE Codes",
+  "title": "National AYUSH Morbidity & Standardized Terminologies Electronic codes",
+  "status": "active",
+  "content": "complete",
+  "concept": [
+    {
+      "code": "NAM-001",
+      "display": "Common Cold",
+      "definition": "An upper respiratory tract infection caused by various viruses"
+    },
+    {
+      "code": "NAM-007",
+      "display": "Jwara",
+      "definition": "Fever or elevated body temperature"
+    }
+  ]
+}
+```
+
+---
+
+## ConceptMap
+
+A FHIR **ConceptMap** resource describes the relationships between concepts in two different code systems. The Ayush Synapse ConceptMap maps from the NAMASTE CodeSystem to the ICD-11 TM2 and Biomedicine CodeSystems.
+
+The ConceptMap is structured with a `source` URI pointing to the NAMASTE CodeSystem and a `target` URI pointing to the ICD-11 TM2 system. Each mapping entry is represented as a `group.element` with one or more `target` entries carrying the ICD-11 code, an `equivalence` value, and a `confidence` extension.
+
+### Endpoint
+
+```
+GET /conceptmap
+```
+
+**Example response (abbreviated):**
+
+```json
+{
+  "resourceType": "ConceptMap",
+  "id": "namaste-icd11-map",
+  "url": "http://example.com/conceptmap/namaste-icd11-map",
+  "name": "NAMASTE to ICD-11 Mapping",
+  "status": "active",
+  "sourceUri": "http://example.com/codesystem/namaste-codes",
+  "targetUri": "http://who.int/icd11/tm2",
+  "group": [
+    {
+      "source": "http://example.com/codesystem/namaste-codes",
+      "target": "http://who.int/icd11/tm2",
+      "element": [
+        {
+          "code": "NAM-001",
+          "display": "Common Cold",
+          "target": [
+            {
+              "code": "TM2-001",
+              "display": "Common Cold",
+              "equivalence": "equivalent",
+              "confidence": 0.9
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Bundle
+
+A FHIR **Bundle** is a container for a collection of FHIR resources — for example, a clinical document containing one or more `Condition` or `Observation` entries. Ayush Synapse accepts Bundle resources via `POST /bundle` and performs **dual coding**: each entry in the bundle is processed, the originating NAMASTE code is preserved, and the corresponding ICD-11 code is resolved automatically using the concept map.
+
+### Endpoint
+
+```
+POST /bundle
+Content-Type: application/json
+Authorization: Bearer <token>
+```
+
+**Example request body:**
+
+```json
+{
+  "resourceType": "Bundle",
+  "id": "encounter-bundle-001",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "code": {
+          "coding": [
+            {
+              "system": "http://example.com/codesystem/namaste-codes",
+              "code": "NAM-001",
+              "display": "Common Cold"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+**Example response:**
+
+```json
+{
+  "message": "Bundle ingested successfully",
+  "bundle_id": "encounter-bundle-001",
+  "entries_processed": 1
+}
+```
+
+---
+
+## Compliance Standards
+
+| Standard                         | Status      | Notes                                                                      |
+|----------------------------------|-------------|----------------------------------------------------------------------------|
+| **FHIR R4**                      | ✅ Compliant | All resources serialised as FHIR R4 JSON — CodeSystem, ConceptMap, Bundle |
+| **India 2016 EHR Standards**     | ✅ Compliant | Mandates FHIR-based interoperability for Indian health information systems |
+| **OAuth 2.0 / JWT (HS256)**      | ✅ Compliant | `POST /auth/login` issues signed JWT tokens; `Authorization: Bearer` header required on protected endpoints |
+
+<Note>
+All endpoints return JSON matching the FHIR R4 resource structure. Refer to the official **FHIR R4 specification** at [https://hl7.org/fhir/R4/](https://hl7.org/fhir/R4/) for the full resource schema, including required fields, cardinality constraints, and permitted extension points.
+</Note>

@@ -1,0 +1,108 @@
+---
+title: "GET /mappings — List All Concept Mappings"
+sidebarTitle: "GET /mappings"
+description: "GET /mappings returns all 85 NAMASTE-to-ICD-11 concept mappings with source code, target code, equivalence type, and confidence score."
+---
+
+The `/mappings` endpoint returns all loaded concept mappings between NAMASTE codes and ICD-11 codes. Each mapping carries a confidence score indicating the strength of the equivalence relationship between the source and target concept.
+
+## Endpoint
+
+<ParamField path="GET /mappings" type="string">
+  **Method:** `GET`  
+  **Path:** `/mappings`  
+  **Auth:** None (demo mode)  
+  **Query Parameters:** None
+</ParamField>
+
+## Response
+
+Returns a JSON array of mapping objects. Each object contains the following fields:
+
+<ResponseField name="sourceCode" type="string">
+  The NAMASTE code being mapped (e.g. `NAM-001`).
+</ResponseField>
+
+<ResponseField name="targetCode" type="string">
+  The ICD-11 code this NAMASTE code maps to (e.g. `TM2-001` or `BM-001`).
+</ResponseField>
+
+<ResponseField name="equivalence" type="string">
+  The type of equivalence between source and target. One of `equivalent`, `equal`, `wider`, or `subsumes`.
+</ResponseField>
+
+<ResponseField name="sourceSystem" type="string">
+  The coding system of the source code. Always `"NAMASTE"`.
+</ResponseField>
+
+<ResponseField name="targetSystem" type="string">
+  The coding system of the target code. Either `"ICD-11 TM2"` or `"ICD-11 Biomedicine"`.
+</ResponseField>
+
+<ResponseField name="confidence" type="number">
+  A float between `0.0` and `1.0` representing the accuracy of the mapping.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/mappings
+```
+
+```javascript JavaScript
+const response = await fetch('/mappings');
+const mappings = await response.json();
+console.log(mappings);
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "sourceCode": "NAM-001",
+    "targetCode": "TM2-001",
+    "equivalence": "equivalent",
+    "sourceSystem": "NAMASTE",
+    "targetSystem": "ICD-11 TM2",
+    "confidence": 0.9
+  },
+  {
+    "sourceCode": "NAM-002",
+    "targetCode": "TM2-002",
+    "equivalence": "equivalent",
+    "sourceSystem": "NAMASTE",
+    "targetSystem": "ICD-11 TM2",
+    "confidence": 0.85
+  },
+  {
+    "sourceCode": "NAM-011",
+    "targetCode": "BM-001",
+    "equivalence": "equivalent",
+    "sourceSystem": "NAMASTE",
+    "targetSystem": "ICD-11 Biomedicine",
+    "confidence": 0.87
+  }
+]
+```
+
+## Equivalence Types
+
+The `equivalence` field describes the semantic relationship between the source concept and its ICD-11 target.
+
+| Value | Meaning |
+|---|---|
+| `equivalent` | The source and target represent the same clinical concept. |
+| `equal` | The source and target are an exact textual and semantic match. |
+| `wider` | The source concept is broader than the target concept. |
+| `subsumes` | The source concept contains (subsumes) the target concept. |
+
+## Confidence Score
+
+The `confidence` field is a float ranging from `0.0` (no confidence) to `1.0` (perfect confidence), indicating how accurately the source code maps to the target. The 85 mappings in the sample dataset collectively maintain approximately **85% coverage** of the loaded NAMASTE code set.
+
+<Info>
+  Mappings are persisted to the database at startup. If the database is empty when the application starts, mappings are loaded from the in-memory fallback dataset defined in `app.py`.
+</Info>

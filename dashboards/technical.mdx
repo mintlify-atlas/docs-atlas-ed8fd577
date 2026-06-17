@@ -1,0 +1,174 @@
+---
+title: "Technical Dashboard for API Testing and Monitoring"
+sidebarTitle: "Technical"
+description: "The Technical Dashboard gives developers API testing tools, system monitoring views, performance metrics, and integration guides for embedding Ayush Synapse."
+---
+
+The Technical Dashboard (served at `/technical.html`) is built for developers, system integrators, and DevOps teams. It bundles an in-browser API testing interface, live system health monitoring, performance metrics drawn from `GET /api/stats`, and step-by-step integration guides for connecting external EMR systems to the Ayush Synapse API — all accessible without leaving the browser.
+
+## Accessing the Dashboard
+
+Start the Ayush Synapse server and navigate to:
+
+```
+http://localhost:5000/technical.html
+```
+
+No authentication is required to load the dashboard or view health metrics. Sending requests to protected endpoints from within the API tester requires a demo token — see the [Professional Dashboard authentication guide](/dashboards/professional#authentication) for how to obtain one.
+
+## Features
+
+<AccordionGroup>
+  <Accordion title="API Testing" icon="flask">
+    The Technical Dashboard embeds an interactive request builder that lets you compose and fire requests to any Ayush Synapse endpoint directly from the browser. For each request you can:
+
+    - Select the HTTP method (`GET` / `POST`)
+    - Enter the endpoint path and any query parameters
+    - Set the `Authorization: Bearer` header for protected routes
+    - Inspect the raw JSON response and HTTP status code in the output pane
+
+    This eliminates the need to switch between a terminal and the browser when iterating on integration logic. All endpoints listed in [Related API Endpoints](#related-api-endpoints) can be tested here.
+  </Accordion>
+
+  <Accordion title="System Monitoring" icon="heart-pulse">
+    The monitoring panel polls two health-check endpoints and renders their responses in a live status view:
+
+    | Endpoint           | Description                                           |
+    | ------------------ | ----------------------------------------------------- |
+    | `GET /health`      | Lightweight liveness check — status, timestamp, and code counts |
+    | `GET /health/detailed` | Full readiness check with per-service status flags and data-load verification |
+
+    Green/amber/red badges reflect the `"status"` field in each response (`"healthy"` or `"degraded"`). The panel auto-refreshes every 30 seconds.
+  </Accordion>
+
+  <Accordion title="Performance Metrics" icon="chart-line">
+    The metrics panel calls `GET /api/stats` on load and renders three key numbers:
+
+    - **NAMASTE code count** — total codes loaded from CSV or database
+    - **ICD-11 code count** — combined TM2 and Biomedicine totals
+    - **Mapping coverage percentage** — `(mapped / total_namaste_codes) × 100`
+
+    These figures help integrators quickly confirm that the service is loaded with the expected dataset before pointing production traffic at it.
+
+    ```bash
+    curl http://localhost:5000/api/stats
+    ```
+
+    ```json
+    {
+      "namaste_codes": {
+        "total": 85,
+        "by_system": { "Ayurveda": 60, "Siddha": 15, "Unani": 10 }
+      },
+      "icd11_codes": {
+        "tm2_total": 55,
+        "biomedicine_total": 30
+      },
+      "mappings": {
+        "mapped": 85,
+        "unmapped": 0,
+        "coverage_percentage": 100.0
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Integration Guides" icon="plug">
+    The dashboard includes a guided walkthrough for connecting an external EMR or HIS to the Ayush Synapse API. The guide covers:
+
+    1. **Authentication** — obtaining and rotating demo tokens via `POST /auth/login`
+    2. **Code lookup** — querying `GET /api/search` and parsing the dual-code response
+    3. **Translation** — using `POST /translate` to convert a known NAMASTE code to its ICD-11 equivalent programmatically
+    4. **FHIR import/export** — fetching `GET /codesystem/namaste`, `GET /codesystem/icd11`, and `GET /conceptmap` for integration with FHIR-aware systems
+    5. **Bundle ingestion** — posting a FHIR Bundle with dual coding via `POST /bundle`
+
+    Each step includes a cURL snippet and a JavaScript `fetch` equivalent.
+  </Accordion>
+</AccordionGroup>
+
+## Health Monitoring
+
+The `GET /health/detailed` endpoint returns a comprehensive readiness snapshot. Below is the complete response shape:
+
+```bash
+curl http://localhost:5000/health/detailed
+```
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:32:44.123456",
+  "demo_mode": true,
+  "data": {
+    "namaste_codes": true,
+    "concept_maps": true,
+    "sample_data_loaded": true
+  },
+  "services": {
+    "csv_parser_service": true,
+    "who_api_service": true,
+    "auth_service": true
+  },
+  "counts": {
+    "namaste_codes": 85,
+    "concept_maps": 85
+  }
+}
+```
+
+| Field                         | Type    | Description                                                                |
+| ----------------------------- | ------- | -------------------------------------------------------------------------- |
+| `status`                      | string  | `"healthy"` when all checks pass; `"degraded"` if any service or data check fails |
+| `timestamp`                   | string  | UTC ISO-8601 timestamp of the health check                                 |
+| `demo_mode`                   | boolean | `true` when the `DEMO_MODE` environment variable is set                    |
+| `data.namaste_codes`          | boolean | `true` when at least one NAMASTE code is loaded                            |
+| `data.concept_maps`           | boolean | `true` when at least one concept mapping is loaded                         |
+| `data.sample_data_loaded`     | boolean | `true` when both NAMASTE codes and concept maps are present                |
+| `services.csv_parser_service` | boolean | `true` when the CSV parser service is available                            |
+| `services.who_api_service`    | boolean | `true` when the WHO API service instance is initialised                    |
+| `services.auth_service`       | boolean | `true` when the authentication service can issue tokens                    |
+| `counts.namaste_codes`        | integer | Total NAMASTE codes currently loaded in memory or database                 |
+| `counts.concept_maps`         | integer | Total concept mappings currently loaded                                    |
+
+The lightweight `GET /health` endpoint returns a subset of this data — useful for load-balancer or Kubernetes liveness probes:
+
+```bash
+curl http://localhost:5000/health
+```
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:32:44.123456",
+  "demo_mode": true,
+  "namaste_codes_count": 85,
+  "mappings_count": 85
+}
+```
+
+## Related API Endpoints
+
+The Technical Dashboard makes use of the following endpoints:
+
+| Method  | Endpoint            | Auth Required | Description                                    |
+| ------- | ------------------- | ------------- | ---------------------------------------------- |
+| `GET`   | `/health`           | No            | Lightweight liveness check                     |
+| `GET`   | `/health/detailed`  | No            | Full readiness check with per-service flags    |
+| `GET`   | `/api/stats`        | No            | Mapping counts and coverage percentage         |
+| `GET`   | `/api/search`       | No            | Full-text search across NAMASTE and ICD-11     |
+| `POST`  | `/auth/login`       | —             | Issues a demo JWT token                        |
+| `POST`  | `/translate`        | No            | Translate a NAMASTE code to ICD-11             |
+| `POST`  | `/bundle`           | No            | Ingest a FHIR Bundle with dual coding          |
+| `GET`   | `/codesystem/namaste` | No          | FHIR R4 CodeSystem for NAMASTE codes           |
+| `GET`   | `/codesystem/icd11` | No            | FHIR R4 CodeSystem for ICD-11                  |
+| `GET`   | `/conceptmap`       | No            | FHIR R4 ConceptMap (NAMASTE → ICD-11)          |
+
+<Tip>
+  If `flask-swagger-ui` is installed in your environment, an interactive Swagger UI is automatically registered at **`/api/docs`**. This provides a full OpenAPI-based testing interface as an alternative to the built-in tester on the Technical Dashboard.
+
+  ```bash
+  pip install flask-swagger-ui
+  python app.py
+  # Then open: http://localhost:5000/api/docs
+  ```
+</Tip>

@@ -1,0 +1,117 @@
+---
+title: "FHIR ConceptMap — NAMASTE to ICD-11 Mappings"
+sidebarTitle: "ConceptMap"
+description: "GET /conceptmap returns a FHIR R4 ConceptMap resource describing all NAMASTE-to-ICD-11 mappings, including source URI, target URI, and equivalence types."
+---
+
+The `/conceptmap` endpoint returns the full FHIR R4 `ConceptMap` resource describing how NAMASTE codes map to ICD-11 codes. This resource enables FHIR-compatible EMR systems to consume the mappings directly without any custom parsing.
+
+## Endpoint
+
+**Method:** `GET`  
+**Path:** `/conceptmap`  
+**Auth:** None (demo mode)
+
+## Response
+
+Returns a FHIR R4 `ConceptMap` JSON object.
+
+### Key Response Fields
+
+| Field | Value |
+|---|---|
+| `resourceType` | `"ConceptMap"` |
+| `id` | `"namaste-icd11-map"` |
+| `name` | `"NAMASTE to ICD-11 Mapping"` |
+| `status` | `"active"` |
+| `sourceUri` | `http://example.com/codesystem/namaste-codes` |
+| `targetUri` | `http://who.int/icd11/tm2` |
+| `group[].element` | Array of source concept elements, each with a `target` array |
+
+Each entry in `group[].element` contains:
+
+| Field | Description |
+|---|---|
+| `code` | The NAMASTE source code (e.g. `NAM-001`) |
+| `target[].code` | The mapped ICD-11 target code |
+| `target[].equivalence` | The mapping equivalence type |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/conceptmap
+```
+
+```javascript JavaScript
+const response = await fetch('/conceptmap');
+const conceptMap = await response.json();
+console.log(conceptMap);
+```
+
+</CodeGroup>
+
+```json Response (truncated)
+{
+  "resourceType": "ConceptMap",
+  "id": "namaste-icd11-map",
+  "url": "http://example.com/conceptmap/namaste-icd11-map",
+  "version": "1.0.0",
+  "name": "NAMASTE to ICD-11 Mapping",
+  "title": "NAMASTE to ICD-11 Mapping",
+  "status": "active",
+  "sourceUri": "http://example.com/codesystem/namaste-codes",
+  "targetUri": "http://who.int/icd11/tm2",
+  "group": [
+    {
+      "source": "http://example.com/codesystem/namaste-codes",
+      "target": "http://who.int/icd11/tm2",
+      "element": [
+        {
+          "code": "NAM-001",
+          "target": [
+            {
+              "code": "TM2-001",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "NAM-002",
+          "target": [
+            {
+              "code": "TM2-002",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "NAM-011",
+          "target": [
+            {
+              "code": "BM-001",
+              "equivalence": "equivalent"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Source and Target URIs
+
+The `sourceUri` and `targetUri` fields identify the code systems participating in the map:
+
+| Field | URI |
+|---|---|
+| `sourceUri` | `http://example.com/codesystem/namaste-codes` |
+| `targetUri` | `http://who.int/icd11/tm2` |
+
+These URIs are also set as the `source` and `target` properties on the `group` object inside the ConceptMap, conforming to the FHIR R4 `ConceptMap.group` structure.
+
+<Info>
+  The ConceptMap includes all 85+ concept mappings. If you need a simpler JSON format without the FHIR resource wrapping, use [GET /mappings](/api/mappings) instead.
+</Info>

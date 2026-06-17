@@ -1,0 +1,98 @@
+---
+title: "Run Ayush Synapse Locally with Python"
+sidebarTitle: "Local Setup"
+description: "Set up and run Ayush Synapse on your local machine with Python 3.8+, a virtual environment, and SQLite for development."
+---
+
+Local development uses the built-in SQLite database, so PostgreSQL is **not required**. This setup is ideal for development, testing, and exploring the FHIR R4 API without any infrastructure overhead.
+
+<Note>
+  **Prerequisites** — Make sure you have the following installed before you begin:
+  - [Python 3.8+](https://www.python.org/downloads/)
+  - pip (bundled with Python 3.4+)
+  - [Git](https://git-scm.com/)
+</Note>
+
+## Setup Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone <repository-url>
+    cd ayush-synapse
+    ```
+  </Step>
+
+  <Step title="Create and Activate a Virtual Environment">
+    <CodeGroup>
+      ```bash Linux / macOS
+      python -m venv .venv
+      source .venv/bin/activate
+      ```
+
+      ```powershell Windows
+      python -m venv .venv
+      .venv\Scripts\activate
+      ```
+    </CodeGroup>
+
+    Your terminal prompt will be prefixed with `(.venv)` once the environment is active.
+  </Step>
+
+  <Step title="Install Dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    This installs Flask, Flask-CORS, SQLAlchemy, PyJWT, Flask-Limiter, and all other required packages listed in `requirements.txt`.
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Copy the provided example file to create your local configuration:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    The defaults in `.env.example` are pre-configured for local development with SQLite and demo mode enabled. No further edits are required to get started. See the [Configuration reference](/deployment/configuration) for a full list of available variables.
+  </Step>
+
+  <Step title="Start the Development Server">
+    ```bash
+    python app.py
+    ```
+
+    Flask will start on `http://0.0.0.0:5000` by default. You should see output similar to:
+
+    ```
+    * Running on http://0.0.0.0:5000
+    * Debug mode: off
+    ```
+  </Step>
+</Steps>
+
+## Accessing the Application
+
+Once the server is running, open your browser and navigate to any of the following paths:
+
+| Path | Interface |
+|---|---|
+| `http://127.0.0.1:5000/` | Main Interface — landing page with platform overview |
+| `http://127.0.0.1:5000/professional.html` | Professional Dashboard — advanced search and dual coding tools for clinicians |
+| `http://127.0.0.1:5000/public.html` | Public Dashboard — simplified condition search with multilingual support |
+| `http://127.0.0.1:5000/technical.html` | Technical Dashboard — API testing and system monitoring |
+| `http://127.0.0.1:5000/api` | API Overview — interactive API documentation |
+
+## API Endpoints Quick Reference
+
+The full interactive API reference is available at `/api` once the server is running. For a structured overview of every endpoint, authentication scheme, and example request/response, see the [API Overview](/api/overview).
+
+<Tip>
+  Run the bundled verification script to confirm that all components — database, authentication, FHIR resources, and API endpoints — are working correctly:
+
+  ```bash
+  python verify_solution.py
+  ```
+
+  A successful run prints a status report for each subsystem and exits with code `0`.
+</Tip>

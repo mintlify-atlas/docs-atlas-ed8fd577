@@ -1,0 +1,151 @@
+---
+title: "FHIR CodeSystem Endpoints for NAMASTE and ICD-11"
+sidebarTitle: "CodeSystem"
+description: "GET /codesystem/namaste and GET /codesystem/icd11 return FHIR R4 CodeSystem resources for NAMASTE and ICD-11 codes respectively."
+---
+
+Ayush Synapse exposes FHIR R4 CodeSystem resources for both coding systems. These resources describe the code set metadata and individual concept definitions, and can be consumed by any FHIR-compatible client or EMR system.
+
+## GET /codesystem/namaste
+
+**Method:** `GET`  
+**Path:** `/codesystem/namaste`  
+**Auth:** None (demo mode)
+
+Returns a FHIR R4 `CodeSystem` resource for all loaded NAMASTE codes.
+
+### Response Fields
+
+| Field | Value |
+|---|---|
+| `resourceType` | `"CodeSystem"` |
+| `id` | `"namaste-codes"` |
+| `name` | `"NAMASTE Codes"` |
+| `description` | National AYUSH Morbidity & Standardized Terminologies Electronic codes |
+| `status` | `"active"` |
+| `content` | Populated `concept` array |
+
+Each entry in the `concept` array contains:
+
+| Field | Description |
+|---|---|
+| `code` | The NAMASTE code identifier (e.g. `NAM-001`) |
+| `display` | Human-readable label for the concept |
+| `definition` | Clinical definition of the concept |
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/codesystem/namaste
+```
+
+```javascript JavaScript
+const response = await fetch('/codesystem/namaste');
+const codeSystem = await response.json();
+console.log(codeSystem);
+```
+
+</CodeGroup>
+
+```json Response (truncated)
+{
+  "resourceType": "CodeSystem",
+  "id": "namaste-codes",
+  "url": "http://example.com/codesystem/namaste-codes",
+  "version": "1.0.0",
+  "name": "NAMASTE Codes",
+  "title": "NAMASTE Codes",
+  "status": "active",
+  "description": "National AYUSH Morbidity & Standardized Terminologies Electronic codes",
+  "concept": [
+    {
+      "code": "NAM-001",
+      "display": "Common Cold",
+      "definition": "An upper respiratory tract infection caused by various viruses"
+    },
+    {
+      "code": "NAM-002",
+      "display": "Headache",
+      "definition": "Pain in the head or upper neck"
+    },
+    {
+      "code": "NAM-003",
+      "display": "Fever",
+      "definition": "Elevated body temperature above normal range"
+    }
+  ]
+}
+```
+
+---
+
+## GET /codesystem/icd11
+
+**Method:** `GET`  
+**Path:** `/codesystem/icd11`  
+**Auth:** None (demo mode)
+
+Returns a FHIR R4 `CodeSystem` resource combining both ICD-11 TM2 and ICD-11 Biomedicine codes into a single resource.
+
+### Response Fields
+
+| Field | Value |
+|---|---|
+| `resourceType` | `"CodeSystem"` |
+| `id` | `"icd11-codes"` |
+| `name` | `"ICD-11 Codes"` |
+| `description` | International Classification of Diseases 11th Revision codes including TM2 and Biomedicine |
+| `status` | `"active"` |
+| `content` | Combined `concept` array from TM2 and Biomedicine code sets |
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/codesystem/icd11
+```
+
+```javascript JavaScript
+const response = await fetch('/codesystem/icd11');
+const codeSystem = await response.json();
+console.log(codeSystem);
+```
+
+</CodeGroup>
+
+```json Response (truncated)
+{
+  "resourceType": "CodeSystem",
+  "id": "icd11-codes",
+  "url": "http://example.com/codesystem/icd11-codes",
+  "version": "1.0.0",
+  "name": "ICD-11 Codes",
+  "title": "ICD-11 Codes",
+  "status": "active",
+  "description": "International Classification of Diseases 11th Revision codes including TM2 and Biomedicine",
+  "concept": [
+    {
+      "code": "TM2-001",
+      "display": "Wind-Cold Invasion",
+      "definition": "Invasion of Wind-Cold pathogenic factor"
+    },
+    {
+      "code": "TM2-002",
+      "display": "Wind-Heat Invasion",
+      "definition": "Invasion of Wind-Heat pathogenic factor"
+    },
+    {
+      "code": "BM-001",
+      "display": "Acute Nasopharyngitis",
+      "definition": "Acute inflammation of the nasal passages and pharynx"
+    }
+  ]
+}
+```
+
+<Note>
+  Both CodeSystem resources follow the FHIR R4 `CodeSystem` structure. The `status` field is set to `"active"` for all resources. See the [FHIR R4 CodeSystem schema](https://hl7.org/fhir/R4/codesystem.html) for the full specification.
+</Note>

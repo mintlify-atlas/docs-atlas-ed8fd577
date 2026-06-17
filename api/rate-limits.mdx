@@ -1,0 +1,78 @@
+---
+title: "Rate Limits for Ayush Synapse API Endpoints"
+sidebarTitle: "Rate Limits"
+description: "Ayush Synapse enforces per-IP rate limits via Flask-Limiter. Default limits are 200 requests per day and 50 per hour, with tighter limits on search and translation."
+---
+
+Rate limiting is handled by **Flask-Limiter**, keyed by the client's remote IP address. Limits are applied globally to all endpoints, with stricter per-route overrides on computationally intensive operations.
+
+---
+
+## Default Limits
+
+| Scope | Limit |
+|-------|-------|
+| All endpoints (global default) | 200 requests / day |
+| All endpoints (global default) | 50 requests / hour |
+| `GET /icd11/search/{term}` | 30 requests / minute |
+| `POST /translate` | 30 requests / minute |
+| `POST /bundle` | 20 requests / minute |
+
+Global limits and per-route limits are evaluated independently. A single request to `POST /translate` counts against the `30/minute` route limit **and** the `200/day` / `50/hour` global limits simultaneously.
+
+---
+
+## Rate Limit Headers
+
+Flask-Limiter attaches the following headers to every response so clients can track their current standing:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | The maximum number of requests permitted in the current window |
+| `X-RateLimit-Remaining` | The number of requests remaining before the limit resets |
+| `X-RateLimit-Reset` | Unix timestamp (UTC) at which the current window resets |
+
+---
+
+## When a Limit Is Exceeded
+
+When a client surpasses any limit, the API responds with:
+
+```http
+HTTP/1.1 429 Too Many Requests
+```
+
+```json
+{
+  "error": "Too Many Requests"
+}
+```
+
+The response still includes the `X-RateLimit-*` headers so the client knows when it can retry.
+
+---
+
+## Configuring Limits
+
+Rate limit storage is controlled by the `RATELIMIT_STORAGE_URL` environment variable.
+
+| Value | Behaviour |
+|-------|-----------|
+| `memory://` (default) | Counters are stored in process memory. Limits reset on every server restart. Each worker process maintains independent counters — not suitable for multi-worker deployments. |
+| `redis://host:port/db` | Counters are stored in Redis and shared across all processes and replicas. Recommended for production. |
+
+Set the variable in your `.env` file or deployment environment:
+
+```bash
+# Development (default)
+RATELIMIT_STORAGE_URL=memory://
+
+# Production — shared Redis instance
+RATELIMIT_STORAGE_URL=redis://redis-host:6379/0
+```
+
+<Tip>
+  During local development and unit testing, the in-memory backend is sufficient and requires no additional infrastructure. Rate limits are rarely hit in a single-developer workflow.
+
+  For load testing or high-volume integration scenarios — for example, bulk code translation or repeated FHIR Bundle ingestion — configure a Redis backend and coordinate request pacing with your deployment team to avoid unintended 429 responses.
+</Tip>

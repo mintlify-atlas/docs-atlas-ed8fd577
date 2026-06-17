@@ -1,0 +1,269 @@
+---
+title: "Authentication and Authorization in Ayush Synapse"
+sidebarTitle: "Authentication"
+description: "Ayush Synapse uses JWT tokens for authentication. Learn how to obtain tokens, pass them in requests, and understand role-based access control."
+---
+
+Ayush Synapse uses **JWT (JSON Web Tokens)** signed with the **HS256** algorithm to authenticate requests to protected endpoints. The token is issued by `POST /auth/login` and must be included in the `Authorization` header of every subsequent protected request. In **demo mode** (`DEMO_MODE=True`), any caller can obtain a fully-permissioned token without providing real credentials — making it easy to explore the API without a registration flow. In a production deployment, the login endpoint should be integrated with **ABHA (Ayushman Bharat Health Account)** to validate actual user credentials before issuing a token.
+
+---
+
+## Obtaining a Token
+
+Send a `POST` request to `/auth/login` with a JSON body containing a `user_id` and a `role`. In demo mode, both fields are accepted as-provided — no password or credential is required.
+
+<Steps>
+  <Step title="Send the login request">
+    ```bash
+    curl -X POST http://127.0.0.1:5000/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"user_id": "demo_user", "role": "clinician"}'
+    ```
+  </Step>
+  <Step title="Receive the token in the response">
+    A successful login returns a signed JWT and a summary of the permissions granted:
+
+    ```json
+    {
+      "message": "Authentication successful",
+      "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiZGVtb191c2VyIiwicm9sZSI6ImNsaW5pY2lhbiIsImV4cCI6MTcxNTAwMDAwMCwiaWF0IjoxNzE0OTEzNjAwfQ.abc123",
+      "user_id": "demo_user",
+      "role": "clinician",
+      "permissions": {
+        "can_access_all_endpoints": true,
+        "can_view_all_data": true,
+        "can_perform_translations": true,
+        "can_access_fhir_resources": true
+      },
+      "demo_mode": true,
+      "instructions": "Use this token to access all protected endpoints by adding 'Authorization: Bearer YOUR_TOKEN_HERE' to your requests.",
+      "demo_note": "This is a demo token with full access to all features. No registration required."
+    }
+    ```
+  </Step>
+  <Step title="Copy the token value">
+    Copy the string value of the `token` field. You will pass it as a Bearer token in subsequent requests.
+  </Step>
+</Steps>
+
+---
+
+## Using the Token
+
+Pass the token in the `Authorization` HTTP header using the `Bearer` scheme. The header must be present on every call to a protected endpoint.
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://127.0.0.1:5000/codesystem/namaste \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+```
+
+```python Python (requests)
+import requests
+
+token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+
+headers = {
+    "Authorization": f"Bearer {token}"
+}
+
+response = requests.get("http://127.0.0.1:5000/codesystem/namaste", headers=headers)
+print(response.json())
+```
+
+```javascript JavaScript (fetch)
+const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...";
+
+fetch("http://127.0.0.1:5000/codesystem/namaste", {
+  headers: {
+    "Authorization": `Bearer ${token}`
+  }
+})
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+</CodeGroup>
+
+---
+
+## Token Lifetime
+
+Tokens issued by Ayush Synapse are valid for **24 hours** from the moment of issuance. The JWT payload includes two standard time claims:
+
+| Claim | Meaning                               | Value                              |
+|-------|---------------------------------------|------------------------------------|
+| `iat` | Issued-at time                        | `datetime.datetime.utcnow()`       |
+| `exp` | Expiry time (token becomes invalid after this) | `datetime.datetime.utcnow() + datetime.timedelta(hours=24)` |
+
+After expiry, the `verify_token` method returns `{"valid": False, "error": "Token has expired"}` and all protected endpoints respond with HTTP `401 Unauthorized`. To regain access, call `POST /auth/login` again to obtain a fresh token.
+
+---
+
+## Roles and Permissions
+
+The `role` field in the login request body determines which endpoints the token holder may access when `require_role` decorators are applied. The two supported roles are:
+
+| Role        | Access Level                                                                                                     |
+|-------------|------------------------------------------------------------------------------------------------------------------|
+| `clinician` | Access to all standard endpoints: code lookup, translation, FHIR resources, and bundle ingestion.              |
+| `admin`     | Full access — all `clinician` permissions, plus any endpoint decorated with `@require_role("admin")`. An `admin` token satisfies *any* role check, because the `require_role` decorator accepts `admin` as a universal bypass role. |
+
+The role-checking logic from `auth_service.py`:
+
+```python
+user_role = result["payload"].get("role")
+if user_role != required_role and user_role != "admin":
+    return jsonify({"error": f"Access denied. Required role: {required_role}"}), 403
+```
+
+If the token's role does not match the required role and is not `admin`, the endpoint returns HTTP `403 Forbidden`.
+
+---
+
+## AuthService Internals
+
+The `AuthService` class (defined in `app/services/auth_service.py`) is the single source of truth for all token operations in Ayush Synapse. Developers extending the platform can import and use the service directly.
+
+<Accordion title="generate_token(user_id, role)">
+Issues a signed JWT for the given user ID and role. The payload contains `user_id`, `role`, `iat`, and `exp` claims. The token is encoded with the `HS256` algorithm using the `JWT_SECRET_KEY` environment variable.
+
+```python
+def generate_token(self, user_id, role="clinician"):
+    payload = {
+        "user_id": user_id,
+        "role": role,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24),
+        "iat": datetime.datetime.utcnow()
+    }
+    token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+    return token
+```
+</Accordion>
+
+<Accordion title="verify_token(token)">
+Decodes and validates a JWT string. Returns a dict with `valid: True` and the decoded `payload` on success, or `valid: False` and an `error` string if the token is expired or malformed.
+
+```python
+def verify_token(self, token):
+    try:
+        payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+        return {"valid": True, "payload": payload}
+    except jwt.ExpiredSignatureError:
+        return {"valid": False, "error": "Token has expired"}
+    except jwt.InvalidTokenError:
+        return {"valid": False, "error": "Invalid token"}
+```
+</Accordion>
+
+<Accordion title="require_auth decorator">
+A Flask route decorator that enforces the presence of a valid Bearer token in the `Authorization` header. On success, it stores the decoded payload in Flask's `g.user` context so downstream handlers can read the caller's identity and role.
+
+```python
+def require_auth(self, f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+
+        if not auth_header:
+            return jsonify({"error": "Authorization header is required"}), 401
+
+        try:
+            token = auth_header.split(" ")[1]
+        except IndexError:
+            return jsonify({"error": "Invalid Authorization header format"}), 401
+
+        result = self.verify_token(token)
+
+        if not result["valid"]:
+            return jsonify({"error": result["error"]}), 401
+
+        g.user = result["payload"]
+        return f(*args, **kwargs)
+
+    return decorated_function
+```
+
+Usage:
+
+```python
+@app.route('/namaste', methods=['GET'])
+@auth_service.require_auth
+def get_namaste_codes():
+    ...
+```
+</Accordion>
+
+<Accordion title="require_role(role) decorator">
+A parameterised Flask route decorator that combines authentication and role-based authorisation in a single step. It verifies the token *and* checks that the caller's role matches the required role (or is `admin`).
+
+```python
+def require_role(self, required_role):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            auth_header = request.headers.get('Authorization')
+
+            if not auth_header:
+                return jsonify({"error": "Authorization header is required"}), 401
+
+            try:
+                token = auth_header.split(" ")[1]
+            except IndexError:
+                return jsonify({"error": "Invalid Authorization header format"}), 401
+
+            result = self.verify_token(token)
+
+            if not result["valid"]:
+                return jsonify({"error": result["error"]}), 401
+
+            user_role = result["payload"].get("role")
+            if user_role != required_role and user_role != "admin":
+                return jsonify({"error": f"Access denied. Required role: {required_role}"}), 403
+
+            g.user = result["payload"]
+            return f(*args, **kwargs)
+
+        return decorated_function
+    return decorator
+```
+
+Usage:
+
+```python
+@app.route('/admin/settings', methods=['GET'])
+@auth_service.require_role("admin")
+def admin_settings():
+    ...
+```
+</Accordion>
+
+---
+
+## JWT_SECRET_KEY Environment Variable
+
+The `AuthService` reads its signing secret from the `JWT_SECRET_KEY` environment variable at startup:
+
+```python
+self.secret_key = os.getenv("JWT_SECRET_KEY", "namaste-icd11-mvp-demo-secret-key-2025")
+```
+
+<Warning>
+**Never use the default secret key in production.** The fallback value `"namaste-icd11-mvp-demo-secret-key-2025"` is public knowledge. Any attacker who knows the secret can forge valid tokens. Set `JWT_SECRET_KEY` to a long, randomly-generated string (at minimum 32 bytes of entropy) in your production `.env` file or secrets manager before deployment.
+
+```bash
+# Generate a strong secret key (example using Python)
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+</Warning>
+
+---
+
+## Demo Mode
+
+<Note>
+When `DEMO_MODE=True` (the default), the `POST /auth/login` endpoint grants a fully-permissioned token to **any** `user_id` without performing credential validation. This is intentional for trial and evaluation purposes — no ABHA account or password is needed.
+
+To disable demo mode and enforce real credential checks, set `DEMO_MODE=False` in your `.env` file and implement credential validation logic in the `/auth/login` route handler in `app.py` before calling `auth_service.generate_token()`.
+</Note>

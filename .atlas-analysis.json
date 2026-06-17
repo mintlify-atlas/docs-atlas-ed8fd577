@@ -1,0 +1,130 @@
+{
+  "projectType": "api-service",
+  "projectName": "Ayush Synapse",
+  "projectDescription": "A FHIR R4-compliant microservice that bridges NAMASTE (National AYUSH Morbidity and Standardized Terminologies Electronic) codes with ICD-11 TM2 and Biomedicine codes for interoperability with Indian EMR systems.",
+  "theme": "luma",
+  "primaryColor": "#1A7F5A",
+  "lightColor": "#E8F5F0",
+  "darkColor": "#0F4A35",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "demo-mode"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/local",
+              "deployment/docker",
+              "deployment/configuration"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/namaste-icd11",
+              "concepts/fhir-compliance",
+              "concepts/authentication"
+            ]
+          },
+          {
+            "group": "Dashboards",
+            "pages": [
+              "dashboards/overview",
+              "dashboards/professional",
+              "dashboards/public",
+              "dashboards/technical"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/rate-limits"
+            ]
+          },
+          {
+            "group": "Coding Systems",
+            "pages": [
+              "api/namaste",
+              "api/icd11",
+              "api/search"
+            ]
+          },
+          {
+            "group": "Mappings & Translation",
+            "pages": [
+              "api/mappings",
+              "api/translate"
+            ]
+          },
+          {
+            "group": "FHIR Resources",
+            "pages": [
+              "api/fhir-codesystem",
+              "api/fhir-conceptmap",
+              "api/fhir-bundle"
+            ]
+          },
+          {
+            "group": "System",
+            "pages": [
+              "api/stats",
+              "api/health",
+              "api/i18n"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "NAMASTE-to-ICD-11 bidirectional code mapping with confidence scores",
+    "FHIR R4 compliant CodeSystem, ConceptMap, and Bundle resources",
+    "JWT-based authentication with ABHA token support",
+    "Real-time search across NAMASTE, ICD-11 TM2, and Biomedicine codes",
+    "Multi-language support for 16 Indian languages via i18n files",
+    "Professional, Public, and Technical role-specific dashboards",
+    "Rate limiting (200/day, 50/hour by default) via Flask-Limiter",
+    "Docker and Docker Compose deployment support",
+    "Demo mode with full API access — no registration required",
+    "PostgreSQL production database with SQLite fallback"
+  ],
+  "publicApiSurface": [
+    "GET /api — API overview and feature summary",
+    "GET /api/search?q=&system=&mapping= — Search across coding systems",
+    "GET /api/stats — Mapping coverage statistics",
+    "GET /i18n/{lang}.json — Translation files",
+    "GET /health — Basic health check",
+    "GET /health/detailed — Detailed service health check",
+    "GET /demo/guide — Demo usage guide",
+    "POST /auth/login — Generate JWT authentication token",
+    "GET /namaste — List all NAMASTE codes",
+    "GET /namaste/{code} — Get a specific NAMASTE code",
+    "GET /icd11 — List all ICD-11 codes (TM2 + Biomedicine)",
+    "GET /icd11/tm2 — List ICD-11 TM2 codes",
+    "GET /icd11/biomedicine — List ICD-11 Biomedicine codes",
+    "GET /icd11/search/{term} — Search ICD-11 codes",
+    "GET /icd11/{code} — Get a specific ICD-11 code",
+    "GET /mappings — List all concept mappings",
+    "POST /translate — Translate a code between systems",
+    "POST /bundle — Ingest a FHIR Bundle with dual coding",
+    "GET /codesystem/namaste — NAMASTE FHIR CodeSystem resource",
+    "GET /codesystem/icd11 — ICD-11 FHIR CodeSystem resource",
+    "GET /conceptmap — NAMASTE-to-ICD-11 FHIR ConceptMap"
+  ]
+}

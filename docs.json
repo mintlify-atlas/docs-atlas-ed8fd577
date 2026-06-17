@@ -1,72 +1,107 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Ayush Synapse",
+  "theme": "luma",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "primary": "#1A7F5A",
+    "light": "#E8F5F0",
+    "dark": "#0F4A35"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/sagar-grv/ayush-synapse"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/sagar-grv/ayush-synapse"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "demo-mode"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/local",
+              "deployment/docker",
+              "deployment/configuration"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/namaste-icd11",
+              "concepts/fhir-compliance",
+              "concepts/authentication"
+            ]
+          },
+          {
+            "group": "Dashboards",
+            "pages": [
+              "dashboards/overview",
+              "dashboards/professional",
+              "dashboards/public",
+              "dashboards/technical"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/rate-limits"
+            ]
+          },
+          {
+            "group": "Coding Systems",
+            "pages": [
+              "api/namaste",
+              "api/icd11",
+              "api/search"
+            ]
+          },
+          {
+            "group": "Mappings & Translation",
+            "pages": [
+              "api/mappings",
+              "api/translate"
+            ]
+          },
+          {
+            "group": "FHIR Resources",
+            "pages": [
+              "api/fhir-codesystem",
+              "api/fhir-conceptmap",
+              "api/fhir-bundle"
+            ]
+          },
+          {
+            "group": "System",
+            "pages": [
+              "api/stats",
+              "api/health",
+              "api/i18n"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

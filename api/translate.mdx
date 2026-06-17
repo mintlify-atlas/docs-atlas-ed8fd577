@@ -1,0 +1,121 @@
+---
+title: "POST /translate — Translate Between Coding Systems"
+sidebarTitle: "POST /translate"
+description: "POST /translate maps a NAMASTE source code to its ICD-11 equivalent. Returns the target code, target system, equivalence, and confidence score."
+---
+
+The `/translate` endpoint performs a concept lookup against the loaded mappings, returning the matched ICD-11 code for a given NAMASTE source code. This endpoint is rate limited to **30 requests per minute** per IP address.
+
+## Endpoint
+
+**Method:** `POST`  
+**Path:** `/translate`  
+**Auth:** None (demo mode)  
+**Rate Limit:** 30 requests per minute
+
+## Request Body
+
+<ParamField body="sourceCode" type="string" required>
+  The NAMASTE code to translate. Must be a string value (e.g. `"NAM-001"`).
+</ParamField>
+
+<ParamField body="sourceSystem" type="string" required>
+  The coding system of the source code. Must be `"NAMASTE"`.
+</ParamField>
+
+## Response
+
+<ResponseField name="sourceCode" type="string">
+  The NAMASTE code that was submitted for translation.
+</ResponseField>
+
+<ResponseField name="targetCode" type="string">
+  The matched ICD-11 code (e.g. `"TM2-001"` or `"BM-001"`).
+</ResponseField>
+
+<ResponseField name="targetSystem" type="string">
+  The ICD-11 system the target code belongs to. Either `"ICD-11 TM2"` or `"ICD-11 Biomedicine"`.
+</ResponseField>
+
+<ResponseField name="equivalence" type="string">
+  The mapping type. One of `equivalent`, `equal`, `wider`, or `subsumes`.
+</ResponseField>
+
+<ResponseField name="confidence" type="number">
+  A float from `0.0` to `1.0` representing the accuracy of the mapping.
+</ResponseField>
+
+## Error Responses
+
+| Status | Condition |
+|---|---|
+| `400 Bad Request` | `sourceCode` or `sourceSystem` is missing, empty, or not a string. |
+| `404 Not Found` | No mapping exists for the provided `sourceCode` / `sourceSystem` pair. |
+
+A `400` response includes a `details` array listing each validation failure:
+
+```json 400 — Validation Error
+{
+  "error": "Validation failed",
+  "details": [
+    "Missing required field: sourceCode"
+  ]
+}
+```
+
+```json 404 — No Mapping Found
+{
+  "error": "No mapping found"
+}
+```
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:5000/translate \
+  -H "Content-Type: application/json" \
+  -d '{"sourceCode": "NAM-001", "sourceSystem": "NAMASTE"}'
+```
+
+```javascript JavaScript
+const response = await fetch('/translate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    sourceCode: 'NAM-001',
+    sourceSystem: 'NAMASTE'
+  })
+});
+
+const result = await response.json();
+console.log(result);
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "sourceCode": "NAM-001",
+  "targetCode": "TM2-001",
+  "targetSystem": "ICD-11 TM2",
+  "equivalence": "equivalent",
+  "confidence": 0.9
+}
+```
+
+## Validation
+
+Both `sourceCode` and `sourceSystem` are validated before the lookup is performed:
+
+- **Presence** — Both fields must exist in the request body and must not be empty.
+- **Type** — Both values must be strings. Passing a number or `null` triggers a `400` response.
+
+When validation fails, the response body includes a `details` array that enumerates every field-level error, making it straightforward to surface specific problems to the caller.
+
+<Note>
+  Currently only the **NAMASTE → ICD-11** translation direction is supported. Reverse lookups (ICD-11 → NAMASTE) are not yet implemented and will return a `404` if attempted.
+</Note>

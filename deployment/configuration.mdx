@@ -1,0 +1,216 @@
+---
+title: "Configure Ayush Synapse with Environment Variables"
+sidebarTitle: "Configuration"
+description: "All Ayush Synapse configuration is driven by environment variables. Reference every supported variable, its default, and how to set it for production."
+---
+
+Ayush Synapse reads all configuration from environment variables, which are loaded by [python-dotenv](https://pypi.org/project/python-dotenv/) from a `.env` file in the project root if one is present. No code changes are needed to switch between development and production modes — every behaviour is controlled by the variables described below.
+
+To get started, copy the provided example file:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` to match your environment before starting the server.
+
+<Warning>
+  The default `JWT_SECRET_KEY` (`namaste-icd11-mvp-demo-secret-key-2025`) is a **publicly known demo value** committed to the repository. Any JWT signed with it can be trivially forged. You **must** replace it with a cryptographically strong secret before deploying to any environment accessible outside your local machine.
+</Warning>
+
+## Environment Variable Reference
+
+<ParamField body="JWT_SECRET_KEY" type="string" required>
+  Secret key used to sign and verify JSON Web Tokens. In production this must be a long, randomly generated string.
+
+  **Default (demo only):** `namaste-icd11-mvp-demo-secret-key-2025`
+
+  Generate a strong value with:
+  ```bash
+  python -c "import secrets; print(secrets.token_hex(48))"
+  ```
+</ParamField>
+
+<ParamField body="FLASK_DEBUG" type="boolean">
+  Enables Flask debug mode, which activates the interactive debugger and auto-reloader. **Never enable in production** — the debugger exposes an interactive Python console.
+
+  **Default:** `False`
+</ParamField>
+
+<ParamField body="FLASK_HOST" type="string">
+  The network interface the Flask development server binds to. `0.0.0.0` listens on all interfaces (required for Docker). Use `127.0.0.1` to restrict to localhost only.
+
+  **Default:** `0.0.0.0`
+</ParamField>
+
+<ParamField body="FLASK_PORT" type="integer">
+  The TCP port the Flask server listens on.
+
+  **Default:** `5000`
+</ParamField>
+
+<ParamField body="CORS_ORIGINS" type="string">
+  Comma-separated list of allowed CORS origins sent in `Access-Control-Allow-Origin` response headers. Use `*` only for local development; set explicit origins in production.
+
+  **Default:** `*`
+
+  **Example (production):** `https://app.example.com,https://admin.example.com`
+</ParamField>
+
+<ParamField body="DEMO_MODE" type="boolean">
+  When `True`, the application runs in MVP demo mode: seed data is loaded, all features are unlocked, and demo tokens are accepted without a real user database.
+
+  **Default:** `True`
+</ParamField>
+
+<ParamField body="DEMO_USER_ACCESS" type="boolean">
+  When `True`, demo users can access all protected endpoints using a token obtained from `POST /auth/login` without any additional provisioning. Set to `false` to require real user accounts.
+
+  **Default:** `True`
+</ParamField>
+
+<ParamField body="DATABASE_URL" type="string">
+  SQLAlchemy connection string for the application database. Defaults to a local SQLite file suitable for development and single-instance Docker deployments. Switch to PostgreSQL for production.
+
+  **Default:** `sqlite:///ayush_synapse.db`
+
+  **PostgreSQL format:** `postgresql://user:password@host:5432/ayush_synapse`
+</ParamField>
+
+<ParamField body="LOG_LEVEL" type="string">
+  Python logging level. Accepted values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+
+  **Default:** `INFO`
+</ParamField>
+
+<ParamField body="LOG_FILE" type="string">
+  Path to the log file. Relative paths are resolved from the project root. Set to an empty string or omit to log to stdout only.
+
+  **Default:** `app.log`
+</ParamField>
+
+<ParamField body="RATELIMIT_STORAGE_URL" type="string">
+  Backend used by [Flask-Limiter](https://flask-limiter.readthedocs.io/) to store rate-limit counters. `memory://` is process-local and lost on restart; use a Redis URL (`redis://host:6379/0`) for multi-process or multi-container deployments.
+
+  **Default:** `memory://`
+</ParamField>
+
+## Production Checklist
+
+<Steps>
+  <Step title="Generate a Strong JWT_SECRET_KEY">
+    Replace the demo key with a cryptographically random secret. Treat it like a database password — store it in a secrets manager or CI/CD secret store, never in source control.
+
+    ```bash
+    python -c "import secrets; print(secrets.token_hex(48))"
+    ```
+
+    Add the output to your `.env` or inject it as an environment variable in your deployment platform:
+
+    ```bash
+    JWT_SECRET_KEY=<your-generated-secret>
+    ```
+  </Step>
+
+  <Step title="Point DATABASE_URL at PostgreSQL">
+    SQLite is single-writer and file-based — it cannot support concurrent connections from multiple workers or containers. Switch to PostgreSQL for any production workload:
+
+    ```bash
+    DATABASE_URL=postgresql://user:password@db-host:5432/ayush_synapse
+    ```
+
+    Ensure `psycopg2-binary` (already in `requirements.txt`) is available in your runtime environment.
+  </Step>
+
+  <Step title="Restrict CORS_ORIGINS">
+    Replace the wildcard with a comma-separated allowlist of the exact origins your front-end is served from:
+
+    ```bash
+    CORS_ORIGINS=https://app.example.com,https://admin.example.com
+    ```
+  </Step>
+
+  <Step title="Disable Flask Debug Mode">
+    Confirm `FLASK_DEBUG` is explicitly set to `False`. This prevents the Werkzeug interactive debugger from being accessible over the network:
+
+    ```bash
+    FLASK_DEBUG=False
+    ```
+  </Step>
+
+  <Step title="Disable Demo Mode for Real User Workloads">
+    Once real user accounts and a production database are in place, turn off demo mode so that unauthenticated demo tokens are rejected:
+
+    ```bash
+    DEMO_MODE=False
+    DEMO_USER_ACCESS=false
+    ```
+  </Step>
+</Steps>
+
+## Example .env Files
+
+<CodeGroup>
+  ```ini Development (.env)
+  # -----------------------------------------------
+  # Ayush Synapse — Development Configuration
+  # -----------------------------------------------
+
+  # Use the demo key locally; SQLite needs no setup
+  JWT_SECRET_KEY=namaste-icd11-mvp-demo-secret-key-2025
+
+  # Flask
+  FLASK_DEBUG=False
+  FLASK_HOST=0.0.0.0
+  FLASK_PORT=5000
+
+  # Allow all origins during local development
+  CORS_ORIGINS=*
+
+  # Demo mode gives full feature access without user provisioning
+  DEMO_MODE=True
+  DEMO_USER_ACCESS=true
+
+  # SQLite — no external database required
+  DATABASE_URL=sqlite:///ayush_synapse.db
+
+  # Logging
+  LOG_LEVEL=INFO
+  LOG_FILE=app.log
+
+  # In-memory rate limiting (single process)
+  RATELIMIT_STORAGE_URL=memory://
+  ```
+
+  ```ini Production (.env)
+  # -----------------------------------------------
+  # Ayush Synapse — Production Configuration
+  # -----------------------------------------------
+
+  # REQUIRED: replace with output of:
+  #   python -c "import secrets; print(secrets.token_hex(48))"
+  JWT_SECRET_KEY=<your-strong-random-secret>
+
+  # Flask
+  FLASK_DEBUG=False
+  FLASK_HOST=0.0.0.0
+  FLASK_PORT=5000
+
+  # Restrict to your actual front-end domain(s)
+  CORS_ORIGINS=https://app.example.com,https://admin.example.com
+
+  # Disable demo access in production
+  DEMO_MODE=False
+  DEMO_USER_ACCESS=false
+
+  # PostgreSQL — required for concurrent/multi-instance deployments
+  DATABASE_URL=postgresql://user:password@db-host:5432/ayush_synapse
+
+  # Logging
+  LOG_LEVEL=WARNING
+  LOG_FILE=app.log
+
+  # Redis-backed rate limiting (supports multiple workers/containers)
+  RATELIMIT_STORAGE_URL=redis://redis-host:6379/0
+  ```
+</CodeGroup>

@@ -1,0 +1,86 @@
+---
+title: "Ayush Synapse Dashboard Overview"
+sidebarTitle: "Overview"
+description: "Ayush Synapse includes three role-specific web dashboards — Professional, Public, and Technical — plus a main landing page accessible at the root URL."
+---
+
+Ayush Synapse ships four built-in web interfaces served as static HTML directly from the Flask application. Each interface is tailored to a specific user role and accessible at a distinct URL path — no separate front-end build step or deployment is required. All four UIs communicate with the same underlying REST API and share the same demo-mode authentication token.
+
+## Dashboard Summary
+
+<CardGroup cols={2}>
+  <Card title="Main Landing Page" icon="house" href="/">
+    Accessible at **`/`** — presents a platform overview, animated statistics, core-feature highlights, and a multilingual quick-search demonstrator powered by `GET /api/search`.
+  </Card>
+  <Card title="Professional Dashboard" icon="stethoscope" href="/dashboards/professional">
+    Accessible at **`/professional.html`** — advanced NAMASTE-ICD-11 search with system and mapping filters, side-by-side dual-coding view, FHIR resource links, and an analytics panel.
+  </Card>
+  <Card title="Public Dashboard" icon="users" href="/dashboards/public">
+    Accessible at **`/public.html`** — simplified condition search for patients and community health workers, health-awareness content, and full multilingual support in 16 Indian languages.
+  </Card>
+  <Card title="Technical Dashboard" icon="terminal" href="/dashboards/technical">
+    Accessible at **`/technical.html`** — in-browser API testing, live system health monitoring, performance metrics, and integration guides for EMR developers.
+  </Card>
+</CardGroup>
+
+## URL Reference
+
+| Dashboard Name        | URL Path            | Intended Audience                                     |
+| --------------------- | ------------------- | ----------------------------------------------------- |
+| Main Landing Page     | `/`                 | All users — general overview and quick search         |
+| Professional Dashboard | `/professional.html` | Clinicians, health informaticians, researchers        |
+| Public Dashboard      | `/public.html`      | Patients, general public, community health workers    |
+| Technical Dashboard   | `/technical.html`   | Developers, system integrators, DevOps engineers      |
+
+## Multilingual Support
+
+All four dashboards support **16 Indian languages** through i18n JSON files served at:
+
+```
+GET /i18n/{lang}.json
+```
+
+The language selector in the page header loads the corresponding file and re-renders all UI labels without a page reload. The following language codes are available:
+
+| Code | Language      | Code | Language   |
+| ---- | ------------- | ---- | ---------- |
+| `en` | English       | `ml` | Malayalam  |
+| `hi` | Hindi         | `mr` | Marathi    |
+| `bn` | Bengali       | `pa` | Punjabi    |
+| `gu` | Gujarati      | `sa` | Sanskrit   |
+| `kn` | Kannada       | `ta` | Tamil      |
+| `as` | Assamese      | `te` | Telugu     |
+| `ks` | Kashmiri      | `ur` | Urdu       |
+| `ne` | Nepali        | `or` | Odia       |
+
+**Example request**
+
+```bash
+curl http://localhost:5000/i18n/hi.json
+```
+
+<Note>
+  If a requested language file is not found, the API returns a `404` JSON response: `{"error": "Language file not found"}`. The UI gracefully falls back to English in this case.
+</Note>
+
+## Authentication and the Dashboards
+
+The dashboards communicate with the same REST API documented in the [API Reference](/api/overview) section. No separate authentication infrastructure is needed beyond the single demo token issued by `POST /auth/login`. Public-facing dashboards (e.g., the Public Dashboard) use only open endpoints and require no token at all.
+
+<Note>
+  This is an MVP running in demo mode. Obtain a token once and reuse it for the entire session — it grants full access to all protected endpoints, including FHIR resource exports.
+</Note>
+
+## Explore Each Dashboard
+
+<CardGroup cols={3}>
+  <Card title="Professional" icon="stethoscope" href="/dashboards/professional">
+    Advanced search, dual coding, and analytics for clinicians and health informatics teams.
+  </Card>
+  <Card title="Public" icon="users" href="/dashboards/public">
+    Simple condition search and health awareness content for non-technical users.
+  </Card>
+  <Card title="Technical" icon="terminal" href="/dashboards/technical">
+    API testing, system monitoring, and integration guides for developers.
+  </Card>
+</CardGroup>

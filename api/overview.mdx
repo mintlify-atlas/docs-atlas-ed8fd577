@@ -1,0 +1,93 @@
+---
+title: "Ayush Synapse REST API Overview"
+sidebarTitle: "Overview"
+description: "Complete reference for the Ayush Synapse REST API. Covers base URL, authentication, content types, response formats, and a full endpoint index."
+---
+
+The Ayush Synapse REST API exposes endpoints for NAMASTE and ICD-11 code lookup, concept mapping, FHIR resources, and system operations. All responses are JSON. The API is FHIR R4-compliant and supports multilingual access across Indian healthcare coding systems.
+
+## Base URL
+
+| Environment | Base URL |
+|-------------|----------|
+| Local development | `http://127.0.0.1:5000` |
+| Docker | `http://localhost:5000` |
+
+<Note>
+  The server binds to `0.0.0.0:5000` by default, making it reachable on all interfaces. Both `127.0.0.1` and `localhost` resolve to the same process when running locally or in Docker.
+</Note>
+
+## Content Type
+
+All requests that include a body **must** set the `Content-Type` header:
+
+```http
+Content-Type: application/json
+```
+
+Requests missing this header on body-bearing endpoints (e.g., `POST /translate`) will result in a `400 Bad Request`.
+
+## Endpoint Index
+
+| Method | Path | Auth Required | Description |
+|--------|------|:-------------:|-------------|
+| `GET` | `/api` | No | API overview and feature summary |
+| `POST` | `/auth/login` | No | Obtain a JWT token |
+| `GET` | `/namaste` | No\* | List all NAMASTE codes |
+| `GET` | `/namaste/{code}` | No\* | Get a specific NAMASTE code by ID |
+| `GET` | `/icd11` | No\* | List all ICD-11 codes (TM2 + Biomedicine) |
+| `GET` | `/icd11/tm2` | No\* | List ICD-11 TM2 codes |
+| `GET` | `/icd11/biomedicine` | No\* | List ICD-11 Biomedicine codes |
+| `GET` | `/icd11/search/{term}` | No\* | Full-text search across ICD-11 codes |
+| `GET` | `/icd11/{code}` | No\* | Get a specific ICD-11 code by ID |
+| `GET` | `/mappings` | No\* | List all NAMASTE → ICD-11 concept mappings |
+| `POST` | `/translate` | No\* | Translate a code between NAMASTE and ICD-11 |
+| `POST` | `/bundle` | No\* | Ingest a FHIR Bundle with dual coding |
+| `GET` | `/codesystem/namaste` | No\* | FHIR R4 CodeSystem resource for NAMASTE |
+| `GET` | `/codesystem/icd11` | No\* | FHIR R4 CodeSystem resource for ICD-11 |
+| `GET` | `/conceptmap` | No\* | FHIR R4 ConceptMap (NAMASTE → ICD-11) |
+| `GET` | `/api/search` | No | Search frontend (supports `?q=`, `?system=`, `?mapping=`) |
+| `GET` | `/api/stats` | No | Mapping coverage statistics |
+| `GET` | `/i18n/{lang}.json` | No | Translation files for multilingual UI |
+| `GET` | `/health` | No | Basic health check |
+| `GET` | `/health/detailed` | No | Detailed health check including service status |
+| `GET` | `/demo/guide` | No | Step-by-step demo instructions |
+
+<Note>
+  **\* Demo mode vs. production** — Endpoints marked with an asterisk are protected by JWT authentication in production deployments (`DEMO_MODE=False`). When the server runs in demo mode (`DEMO_MODE=True`, the default), all endpoints are accessible without a token. See [Authentication](/api/authentication) for details.
+</Note>
+
+## Response Format
+
+Every response body is a JSON object or array. Successful responses vary by endpoint; error responses always use the following shape:
+
+```json
+{
+  "error": "Descriptive error message"
+}
+```
+
+### HTTP Status Codes
+
+| Status | Meaning |
+|--------|---------|
+| `200 OK` | Request succeeded |
+| `400 Bad Request` | Missing or invalid request body / parameters |
+| `401 Unauthorized` | Missing, invalid, or expired JWT token |
+| `403 Forbidden` | Valid token but insufficient role permissions |
+| `404 Not Found` | Requested resource (code, mapping, language file) does not exist |
+| `429 Too Many Requests` | Rate limit exceeded |
+
+## Demo Mode
+
+When `DEMO_MODE=True` (the default), the server grants full access to all endpoints without requiring a token. This lets you explore every feature immediately.
+
+In production, set `DEMO_MODE=False` and supply a strong `JWT_SECRET_KEY`. Protected endpoints will then require an `Authorization: Bearer <token>` header obtained from `POST /auth/login`.
+
+```bash
+# Demo mode — no token needed
+curl http://localhost:5000/namaste
+
+# Production mode — token required
+curl -H "Authorization: Bearer <token>" http://localhost:5000/namaste
+```

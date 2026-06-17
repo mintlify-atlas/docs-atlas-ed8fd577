@@ -1,0 +1,197 @@
+---
+title: "Search Across NAMASTE and ICD-11 Coding Systems"
+sidebarTitle: "Search"
+description: "GET /api/search queries NAMASTE and ICD-11 codes simultaneously. Filter by system (Ayurveda, Siddha, Unani, TM2, Biomedicine) and mapping status."
+---
+
+The `/api/search` endpoint powers the frontend dashboards and is available without authentication in demo mode. It searches across **NAMASTE codes** and **ICD-11 codes** (both TM2 and Biomedicine) simultaneously, returning a unified result list that includes each code's mapping status and linked ICD-11 target where applicable. This is the primary entry point for the Professional Dashboard, Public Dashboard, and Technical Dashboard search features.
+
+---
+
+## GET /api/search
+
+**Method:** `GET`  
+**Path:** `/api/search`  
+**Auth:** None required
+
+### Query Parameters
+
+<ParamField query="q" type="string">
+  Full-text search query. The value is matched case-insensitively against the `code`, `display`, and `definition` fields of both NAMASTE and ICD-11 code sets. Must be at least **2 characters** to return any results. Shorter values are treated as empty.
+</ParamField>
+
+<ParamField query="system" type="string" default="all">
+  Filter results to a specific coding system. Accepted values:
+
+  | Value          | Filters to                                        |
+  | -------------- | ------------------------------------------------- |
+  | `all`          | All NAMASTE and ICD-11 codes (default)            |
+  | `Ayurveda`     | NAMASTE codes with `system = "Ayurveda"`          |
+  | `Siddha`       | NAMASTE codes with `system = "Siddha"`            |
+  | `Unani`        | NAMASTE codes with `system = "Unani"`             |
+  | `TM2`          | ICD-11 codes with `chapter = "TM2"`              |
+  | `Biomedicine`  | ICD-11 codes with `chapter = "Biomedicine"`      |
+</ParamField>
+
+<ParamField query="mapping" type="string" default="all">
+  Filter results by concept-map status. Accepted values:
+
+  | Value      | Filters to                                           |
+  | ---------- | ---------------------------------------------------- |
+  | `all`      | Both mapped and unmapped codes (default)             |
+  | `mapped`   | Codes that have a corresponding entry in the concept map |
+  | `unmapped` | Codes with no concept-map entry                     |
+</ParamField>
+
+### Response
+
+Returns a JSON **array** of unified result objects. Each element represents one code, whether it originated from the NAMASTE set or the ICD-11 set.
+
+<ResponseField name="NAMASTE_Code" type="string">
+  The NAMASTE code identifier, e.g. `NAM-003`. For results that originate purely from an ICD-11 search (i.e. no NAMASTE source code is mapped to this ICD-11 entry), this field is `"N/A"`.
+</ResponseField>
+
+<ResponseField name="Display_Term" type="string">
+  Human-readable name for the condition, e.g. `Fever`.
+</ResponseField>
+
+<ResponseField name="Definition" type="string">
+  Clinical definition of the condition.
+</ResponseField>
+
+<ResponseField name="System" type="string">
+  The originating coding system. One of `Ayurveda`, `Siddha`, `Unani`, `ICD-11 TM2`, or `ICD-11 Biomedicine`.
+</ResponseField>
+
+<ResponseField name="Target_Code" type="string">
+  The ICD-11 code this NAMASTE code maps to, e.g. `TM2-003`. Set to `"N/A"` if no mapping exists for this code.
+</ResponseField>
+
+<ResponseField name="Target_Display" type="string">
+  Display name of the mapped ICD-11 code, e.g. `Fever`. Set to `"Not Mapped"` if no mapping exists.
+</ResponseField>
+
+### Example — Search for "fever"
+
+<CodeGroup>
+
+```bash cURL
+curl "http://localhost:5000/api/search?q=fever&system=all&mapping=all"
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({ q: 'fever', system: 'all', mapping: 'all' });
+const response = await fetch(`http://localhost:5000/api/search?${params}`);
+const results = await response.json();
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "NAMASTE_Code": "NAM-003",
+    "Display_Term": "Fever",
+    "Definition": "Elevated body temperature above normal range",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-003",
+    "Target_Display": "Fever"
+  },
+  {
+    "NAMASTE_Code": "NAM-007",
+    "Display_Term": "Jwara",
+    "Definition": "Fever or elevated body temperature",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-007",
+    "Target_Display": "TM2-007"
+  },
+  {
+    "NAMASTE_Code": "N/A",
+    "Display_Term": "Fever of unknown origin",
+    "Definition": "Elevated body temperature without identified cause",
+    "System": "ICD-11 Biomedicine",
+    "Target_Code": "BM-003",
+    "Target_Display": "Fever of unknown origin"
+  }
+]
+```
+
+---
+
+## Search Logic
+
+The endpoint applies a **two-stage search** on each request:
+
+1. **NAMASTE search (primary):** The server iterates over all in-memory NAMASTE codes. For each code, it applies the `system` filter first, then checks whether `q` appears in the `code`, `display`, or `definition` field (case-insensitive substring match). Passing codes are then matched against the concept map to populate `Target_Code` and `Target_Display`. The `mapping` filter is applied after the concept-map lookup.
+
+2. **ICD-11 search (supplementary):** If the NAMASTE stage returns **fewer than 20 results**, the server calls `WhoApiService.search_codes(q)` which runs the same substring match against both TM2 and Biomedicine code sets. Results from this stage are subject to the same `system` and `mapping` filters.  Each ICD-11 result is checked against the concept map in reverse (target → source) to resolve its `NAMASTE_Code`.
+
+This two-stage design ensures NAMASTE codes are always surfaced first and that the combined result never exceeds a manageable size for frontend rendering.
+
+---
+
+## Example Queries
+
+<CodeGroup>
+
+```bash Search for 'fever'
+curl "http://localhost:5000/api/search?q=fever"
+```
+
+```bash Ayurveda codes only
+curl "http://localhost:5000/api/search?q=fever&system=Ayurveda"
+```
+
+```bash Mapped codes only
+curl "http://localhost:5000/api/search?q=fever&mapping=mapped"
+```
+
+</CodeGroup>
+
+**Ayurveda system only — returns Ayurveda NAMASTE codes matching "fever":**
+
+```json Response — system=Ayurveda
+[
+  {
+    "NAMASTE_Code": "NAM-003",
+    "Display_Term": "Fever",
+    "Definition": "Elevated body temperature above normal range",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-003",
+    "Target_Display": "Fever"
+  },
+  {
+    "NAMASTE_Code": "NAM-007",
+    "Display_Term": "Jwara",
+    "Definition": "Fever or elevated body temperature",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-007",
+    "Target_Display": "TM2-007"
+  }
+]
+```
+
+**Mapped codes only — excludes any result without a concept-map entry:**
+
+```json Response — mapping=mapped
+[
+  {
+    "NAMASTE_Code": "NAM-003",
+    "Display_Term": "Fever",
+    "Definition": "Elevated body temperature above normal range",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-003",
+    "Target_Display": "Fever"
+  }
+]
+```
+
+---
+
+<Note>
+  Sending an empty `q` parameter (or omitting it entirely) with no active filters (`system=all` and `mapping=all`) returns an **empty array** `[]` immediately — no database query is executed. The search query must be at least **2 characters** long to trigger any matching logic.
+</Note>
+
+<Tip>
+  To browse all codes in a specific AYUSH system without a keyword, use the `system` filter with an empty or omitted `q` but add an explicit `mapping` value, e.g. `GET /api/search?system=Ayurveda&mapping=unmapped`. Because a non-`all` `mapping` filter is present, the server will scan the full NAMASTE code list even without a keyword.
+</Tip>

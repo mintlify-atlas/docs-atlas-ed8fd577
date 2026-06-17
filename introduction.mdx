@@ -1,0 +1,99 @@
+---
+title: "Ayush Synapse: Medical Coding Integration Platform"
+sidebarTitle: "Introduction"
+description: "Ayush Synapse bridges NAMASTE traditional medicine codes with ICD-11 TM2 standards, delivering FHIR R4 compliance and multilingual support for Indian EMR systems."
+---
+
+## What is Ayush Synapse?
+
+Ayush Synapse is a FHIR R4-compliant Flask microservice that resolves the interoperability gap between **NAMASTE** (National AYUSH Morbidity & Standardized Terminologies Electronic) codes and the WHO's **ICD-11 TM2** and Biomedicine classification standards. Indian electronic health record (EHR) systems that serve AYUSH practitioners — covering Ayurveda, Yoga, Unani, Siddha, and Homeopathy — have historically been unable to exchange data with biomedical systems because the two code sets have had no shared translation layer. Ayush Synapse provides that layer as a lightweight REST API deployable in minutes, fully conformant with India's 2016 EHR Standards.
+
+The platform is built for **developers** integrating AYUSH modules into hospital information systems or national health stacks, **health informatics teams** building interoperable EHR pipelines, and **AYUSH clinicians** who need a searchable, multilingual interface to look up condition codes and their international equivalents in real time.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="NAMASTE–ICD-11 Integration" icon="arrows-left-right">
+    Seamless bidirectional mapping between traditional Indian medicine codes and
+    ICD-11 TM2 / Biomedicine standards. Covers 85+ pre-loaded concept maps with
+    confidence scores for every translation.
+  </Card>
+  <Card title="FHIR R4 Compliance" icon="shield-check">
+    All resources — CodeSystem, ConceptMap, and FHIR Bundle ingestion — follow
+    FHIR Release 4 specifications, enabling plug-and-play integration with any
+    FHIR-capable EHR or HIE platform.
+  </Card>
+  <Card title="Multi-Language Support" icon="language">
+    The interface ships with translation files for 16 Indian languages served via
+    the <code>/i18n/&#123;lang&#125;.json</code> endpoint, making the platform
+    accessible to clinicians and patients across India's linguistic regions.
+  </Card>
+  <Card title="Professional, Public & Technical Dashboards" icon="layout-dashboard">
+    Three purpose-built web portals — advanced dual-coding tools for clinicians,
+    a simplified search experience for the public, and an API testing and
+    monitoring console for developers.
+  </Card>
+  <Card title="JWT Auth with ABHA Token Support" icon="key">
+    Secure authentication via JWT tokens with OAuth 2.0 patterns and support for
+    India's Ayushman Bharat Health Account (ABHA) token integration. Demo mode
+    removes the registration barrier for evaluation.
+  </Card>
+  <Card title="Real-Time Search" icon="magnifying-glass">
+    A unified <code>GET /api/search</code> endpoint queries both NAMASTE and
+    ICD-11 code sets simultaneously, with filters for coding system, mapping
+    status, and free-text terms.
+  </Card>
+</CardGroup>
+
+## Architecture Overview
+
+Ayush Synapse is a single-process **Flask REST API** that initialises all required services on startup and exposes a clean HTTP interface. The storage layer is dual-path: codes and concept maps are loaded into **SQLite** (default, zero-config) for development, or **PostgreSQL** when a `DATABASE_URL` is configured for production. An in-memory fallback ensures the service remains operational even if the database layer is unavailable during initialisation.
+
+Authentication is handled by a dedicated `AuthService` that issues **JWT tokens** validated on every protected request. Rate limiting (200 requests/day, 50/hour by default, stricter limits on translate and bundle endpoints) is enforced via Flask-Limiter. CORS is configurable via the `CORS_ORIGINS` environment variable, defaulting to open for local development. The entire stack ships with a **Docker Compose** file for one-command cloud deployment.
+
+```
+┌─────────────────────────────────────────────┐
+│                  Flask App                  │
+│                                             │
+│  ┌───────────┐  ┌───────────┐  ┌─────────┐ │
+│  │  AuthSvc  │  │  WhoAPI   │  │  CSV    │ │
+│  │  (JWT)    │  │  Service  │  │ Parser  │ │
+│  └───────────┘  └───────────┘  └─────────┘ │
+│                                             │
+│  ┌──────────────────────────────────────┐   │
+│  │  SQLAlchemy ORM                      │   │
+│  │  SQLite (dev) │ PostgreSQL (prod)    │   │
+│  └──────────────────────────────────────┘   │
+└─────────────────────────────────────────────┘
+```
+
+## Compliance
+
+<Note>
+  **Standards compliance at a glance:**
+
+  - **FHIR R4** — All CodeSystem, ConceptMap, and Bundle resources conform to FHIR Release 4 specifications.
+  - **India 2016 EHR Standards** — The NAMASTE code set and mapping methodology comply with the Ministry of Health & Family Welfare's 2016 Electronic Health Records Standards.
+  - **MIT License** — Ayush Synapse is open source. You are free to use, modify, and distribute it under the terms of the MIT License.
+</Note>
+
+## Quick Navigation
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Clone the repo, start the server, and make your first NAMASTE-to-ICD-11
+    translation in under 5 minutes.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Full reference for every endpoint — request shapes, response schemas, and
+    example curl commands.
+  </Card>
+  <Card title="Concepts: NAMASTE & ICD-11" icon="book-open" href="/concepts/namaste-icd11">
+    Understand the NAMASTE coding scheme, ICD-11 TM2 chapter structure, and how
+    concept maps encode equivalence and confidence.
+  </Card>
+  <Card title="Deployment" icon="server" href="/deployment/local">
+    Step-by-step guides for local Python, Docker Compose, and PostgreSQL
+    production deployments.
+  </Card>
+</CardGroup>

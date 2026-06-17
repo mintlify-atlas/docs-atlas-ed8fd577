@@ -1,0 +1,205 @@
+---
+title: "Explore Ayush Synapse with Demo Mode"
+sidebarTitle: "Demo Mode"
+description: "Demo mode grants full API access without registration. Learn how to obtain a demo token, use all endpoints, and explore the dashboards in a trial environment."
+---
+
+Demo mode gives you complete access to every feature in Ayush Synapse — protected endpoints, FHIR resources, translation, search, and all three dashboards — without creating an account or managing any credentials. It is enabled by default via the `DEMO_MODE=True` environment variable and is designed so developers, health informatics teams, and AYUSH clinicians can evaluate the platform end-to-end before committing to a production deployment.
+
+## Getting a Demo Token
+
+Send a single `POST` request to `/auth/login` with a `user_id` and `role` of your choice. The server returns a signed JWT immediately.
+
+```bash
+curl -s -X POST http://127.0.0.1:5000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "demo_user", "role": "clinician"}'
+```
+
+Response:
+
+```json
+{
+  "message": "Authentication successful",
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "user_id": "demo_user",
+  "role": "clinician",
+  "permissions": {
+    "can_access_all_endpoints": true,
+    "can_view_all_data": true,
+    "can_perform_translations": true,
+    "can_access_fhir_resources": true
+  },
+  "demo_mode": true,
+  "demo_note": "This is a demo token with full access to all features. No registration required."
+}
+```
+
+<Tip>
+  Demo tokens are valid for **24 hours**. After expiry, simply call `POST /auth/login` again to get a fresh token — no re-registration or password reset required.
+</Tip>
+
+## Using the Token
+
+Pass the token in the `Authorization` header as a Bearer credential on every request to a protected endpoint.
+
+<CodeGroup>
+```bash curl
+curl -s http://127.0.0.1:5000/namaste \
+  -H "Authorization: Bearer <YOUR_TOKEN>"
+```
+
+```javascript JavaScript fetch
+const token = "<YOUR_TOKEN>";
+
+const response = await fetch("http://127.0.0.1:5000/namaste", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+
+const codes = await response.json();
+console.log(codes);
+```
+</CodeGroup>
+
+Replace `<YOUR_TOKEN>` with the value of the `"token"` field from the login response.
+
+## Available Demo Scenarios
+
+<AccordionGroup>
+  <Accordion title="Search for medical codes">
+    The public `GET /api/search` endpoint requires no token. It searches across
+    both NAMASTE and ICD-11 code sets simultaneously and accepts an optional
+    `system` filter (`all`, `TM2`, or `Biomedicine`) and a `mapping` filter
+    (`all`, `mapped`, or `unmapped`).
+
+    ```bash
+    curl -s "http://127.0.0.1:5000/api/search?q=fever"
+    ```
+
+    Example response item:
+
+    ```json
+    [
+      {
+        "NAMASTE_Code": "NAM-003",
+        "Display_Term": "Fever",
+        "Definition": "Elevated body temperature above normal range",
+        "System": "Ayurveda",
+        "Target_Code": "TM2-003",
+        "Target_Display": "Fever — ICD-11 TM2"
+      }
+    ]
+    ```
+
+    Try other terms such as `headache`, `diabetes`, or `joint` to see more
+    results. Results from both NAMASTE and ICD-11 code sets are merged in a
+    single response.
+  </Accordion>
+
+  <Accordion title="Translate between coding systems">
+    `POST /translate` accepts a NAMASTE source code and returns the mapped
+    ICD-11 TM2 or Biomedicine code with equivalence type and confidence score.
+    A valid Bearer token is required.
+
+    ```bash
+    curl -s -X POST http://127.0.0.1:5000/translate \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer <YOUR_TOKEN>" \
+      -d '{"sourceCode": "NAM-001", "sourceSystem": "NAMASTE"}'
+    ```
+
+    Example response:
+
+    ```json
+    {
+      "sourceCode": "NAM-001",
+      "targetCode": "TM2-001",
+      "targetSystem": "ICD-11 TM2",
+      "equivalence": "equivalent",
+      "confidence": 0.9
+    }
+    ```
+
+    The `confidence` field is a 0–1 score. Codes with a confidence below 0.8
+    should be reviewed by a clinician before use in production records. Try
+    codes `NAM-001` through `NAM-085` — each has a pre-loaded mapping.
+  </Accordion>
+
+  <Accordion title="Access FHIR resources">
+    Ayush Synapse exposes three FHIR R4 resources. These endpoints require a
+    Bearer token.
+
+    **NAMASTE CodeSystem** — returns the full FHIR R4 `CodeSystem` resource for
+    all loaded NAMASTE codes:
+
+    ```bash
+    curl -s http://127.0.0.1:5000/codesystem/namaste \
+      -H "Authorization: Bearer <YOUR_TOKEN>"
+    ```
+
+    **ICD-11 CodeSystem** — returns the FHIR R4 `CodeSystem` resource combining
+    TM2 and Biomedicine codes:
+
+    ```bash
+    curl -s http://127.0.0.1:5000/codesystem/icd11 \
+      -H "Authorization: Bearer <YOUR_TOKEN>"
+    ```
+
+    **ConceptMap** — returns the FHIR R4 `ConceptMap` that encodes all
+    NAMASTE-to-ICD-11 mappings with equivalence types:
+
+    ```bash
+    curl -s http://127.0.0.1:5000/conceptmap \
+      -H "Authorization: Bearer <YOUR_TOKEN>"
+    ```
+
+    All three resources conform to FHIR Release 4 and can be imported directly
+    into any FHIR-capable system.
+  </Accordion>
+</AccordionGroup>
+
+## Dashboard Tour
+
+Three purpose-built web dashboards are available at the URLs below. Each runs in the browser and makes use of the same API endpoints described above. Open them while the server is running.
+
+<CardGroup cols={3}>
+  <Card title="Professional Dashboard" icon="stethoscope" href="/dashboards/professional">
+    Advanced dual-coding search, FHIR resource browser, mapping analytics, and
+    clinical tools designed for clinicians and researchers.
+    <br/>
+    **URL:** `http://127.0.0.1:5000/professional.html`
+  </Card>
+  <Card title="Public Dashboard" icon="users" href="/dashboards/public">
+    Simplified condition search, health awareness content, and multilingual
+    support for non-technical users and patients.
+    <br/>
+    **URL:** `http://127.0.0.1:5000/public.html`
+  </Card>
+  <Card title="Technical Dashboard" icon="terminal" href="/dashboards/technical">
+    Interactive API testing, system monitoring, performance metrics, and
+    integration guides for developers.
+    <br/>
+    **URL:** `http://127.0.0.1:5000/technical.html`
+  </Card>
+</CardGroup>
+
+## Production Considerations
+
+<Warning>
+  **Demo mode uses in-memory storage alongside SQLite.** Any data written during
+  a demo session — including any codes or mappings created at runtime — will be
+  lost when the server process restarts. The pre-loaded sample NAMASTE codes and
+  concept maps are re-seeded on every cold start.
+
+  For a persistent production deployment, set `DATABASE_URL` in your `.env` file
+  to point at a PostgreSQL instance:
+
+  ```bash
+  DATABASE_URL=postgresql://user:password@localhost:5432/ayush_synapse
+  ```
+
+  You should also replace the default `JWT_SECRET_KEY` with a cryptographically
+  strong secret and set `DEMO_MODE=False` to enforce real credential validation.
+</Warning>

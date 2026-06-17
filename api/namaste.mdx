@@ -1,0 +1,172 @@
+---
+title: "NAMASTE Code Endpoints — List and Retrieve"
+sidebarTitle: "NAMASTE Codes"
+description: "GET /namaste returns all NAMASTE codes. GET /namaste/{code} returns a specific code with display, definition, and AYUSH system fields."
+---
+
+The NAMASTE endpoints expose the loaded traditional Indian medicine codes covering Ayurveda, Siddha, and Unani systems. Codes are loaded from the bundled `sample-namaste.csv` file and persisted to the database on application startup. All responses return plain JSON — no authentication token is required in demo mode.
+
+---
+
+## GET /namaste — List All NAMASTE Codes
+
+Returns the complete set of NAMASTE codes currently loaded in the database.
+
+**Method:** `GET`  
+**Path:** `/namaste`  
+**Auth:** None required (open in demo mode)
+
+### Query Parameters
+
+This endpoint accepts no query parameters. To search or filter, use [`GET /api/search`](/api/search).
+
+### Response
+
+Returns a JSON **array** of NAMASTE code objects.
+
+<ResponseField name="code" type="string">
+  Unique NAMASTE code identifier, e.g. `NAM-001`.
+</ResponseField>
+
+<ResponseField name="display" type="string">
+  Human-readable name for the condition, e.g. `Common Cold`.
+</ResponseField>
+
+<ResponseField name="definition" type="string">
+  Clinical definition of the condition, e.g. `An upper respiratory tract infection caused by various viruses`.
+</ResponseField>
+
+<ResponseField name="system" type="string">
+  AYUSH medical system this code belongs to. One of `Ayurveda`, `Siddha`, or `Unani`.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/namaste
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:5000/namaste');
+const codes = await response.json();
+console.log(codes);
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "code": "NAM-001",
+    "display": "Common Cold",
+    "definition": "An upper respiratory tract infection caused by various viruses",
+    "system": "Ayurveda"
+  },
+  {
+    "code": "NAM-004",
+    "display": "Joint Pain",
+    "definition": "Pain in one or more joints",
+    "system": "Siddha"
+  },
+  {
+    "code": "NAM-005",
+    "display": "Digestive Issues",
+    "definition": "Problems with digestion or gastrointestinal function",
+    "system": "Unani"
+  }
+]
+```
+
+---
+
+## GET /namaste/\{code\} — Get a Specific NAMASTE Code
+
+Returns the full detail record for a single NAMASTE code identified by its code string.
+
+**Method:** `GET`  
+**Path:** `/namaste/{code}`  
+**Auth:** None required (open in demo mode)
+
+### Path Parameters
+
+<ParamField path="code" type="string" required>
+  The NAMASTE code identifier to retrieve, e.g. `NAM-001`. Must match a code stored in the database exactly (case-sensitive).
+</ParamField>
+
+### Response
+
+Returns a single NAMASTE code object on success.
+
+<ResponseField name="code" type="string">
+  Unique NAMASTE code identifier.
+</ResponseField>
+
+<ResponseField name="display" type="string">
+  Human-readable name for the condition.
+</ResponseField>
+
+<ResponseField name="definition" type="string">
+  Clinical definition of the condition.
+</ResponseField>
+
+<ResponseField name="system" type="string">
+  AYUSH medical system: `Ayurveda`, `Siddha`, or `Unani`.
+</ResponseField>
+
+Returns **HTTP 404** with the following body when the code does not exist:
+
+```json 404 Response
+{
+  "error": "Code not found"
+}
+```
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/namaste/NAM-001
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:5000/namaste/NAM-001');
+if (response.ok) {
+  const code = await response.json();
+  console.log(code);
+} else {
+  console.error('Code not found');
+}
+```
+
+</CodeGroup>
+
+```json Response — 200 OK
+{
+  "code": "NAM-001",
+  "display": "Common Cold",
+  "definition": "An upper respiratory tract infection caused by various viruses",
+  "system": "Ayurveda"
+}
+```
+
+---
+
+## Sample NAMASTE Codes
+
+The following codes are included in `sample-namaste.csv` and are loaded at startup. The table below shows the first six entries spanning all three AYUSH systems.
+
+| Code    | Display          | System    |
+| ------- | ---------------- | --------- |
+| NAM-001 | Common Cold      | Ayurveda  |
+| NAM-002 | Headache         | Ayurveda  |
+| NAM-003 | Fever            | Ayurveda  |
+| NAM-004 | Joint Pain       | Siddha    |
+| NAM-005 | Digestive Issues | Unani     |
+| NAM-006 | Skin Rash        | Ayurveda  |
+
+<Info>
+  NAMASTE codes are loaded from `sample-namaste.csv` at application startup. The CSV uses four columns in this order: `code`, `display`, `definition`, `system`. The bundled file ships with 100 codes spanning Ayurveda (NAM-001 – NAM-026), Siddha (NAM-027 – NAM-070), and Unani (NAM-071 – NAM-100). If the database already contains NAMASTE codes on startup, the CSV load is skipped and the existing rows are used instead.
+</Info>

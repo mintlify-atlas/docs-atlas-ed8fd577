@@ -1,0 +1,213 @@
+---
+title: "Understanding NAMASTE and ICD-11 Code Mapping"
+sidebarTitle: "NAMASTE & ICD-11"
+description: "Learn how NAMASTE codes represent Ayurveda, Siddha, and Unani conditions and how Ayush Synapse maps them to ICD-11 TM2 and Biomedicine codes."
+---
+
+Traditional Indian medicine—Ayurveda, Siddha, and Unani—uses its own clinical terminology that has no direct equivalent in international biomedical coding systems like ICD-11. This creates an interoperability gap: an EMR system built around ICD codes cannot natively interpret a diagnosis recorded in NAMASTE codes, and vice versa. Ayush Synapse bridges this gap by maintaining a structured, FHIR R4-compliant mapping layer between the **NAMASTE** coding system and two ICD-11 target vocabularies—**TM2** (Traditional Medicine Module 2) and **Biomedicine**—so that clinical records created in any AYUSH facility can be exchanged with any FHIR-compatible system without loss of meaning.
+
+---
+
+## NAMASTE Codes
+
+**NAMASTE** stands for **National AYUSH Morbidity and Standardized Terminologies Electronic**. It is a standardized coding system developed by India's Ministry of AYUSH to represent the morbidity terms used across the three main traditional medicine disciplines:
+
+- **Ayurveda** — classical Indian medicine based on tridosha (Vata, Pitta, Kapha) principles
+- **Siddha** — a Tamil system of medicine rooted in alchemical and herbal traditions
+- **Unani** — a Greco-Arabic tradition of medicine practised widely in South Asia
+
+Each NAMASTE code identifies a single clinical condition within one of these disciplines. The code itself follows the format `NAM-NNN` (e.g., `NAM-001`), making it easy to sort and filter by system while maintaining a unique namespace for every condition.
+
+### NamasteCode Model
+
+The `NamasteCode` Python class (defined in `app/models/namaste_code.py`) represents a single NAMASTE entry in-memory and exposes a FHIR serialisation method:
+
+```python
+class NamasteCode:
+    def __init__(self, code, display, definition, system):
+        self.code = code
+        self.display = display
+        self.definition = definition
+        self.system = system  # Ayurveda, Siddha, Unani
+
+    def to_fhir_codesystem(self):
+        return {
+            "code": self.code,
+            "display": self.display,
+            "definition": self.definition
+        }
+
+    def __repr__(self):
+        return f"NamasteCode(code={self.code}, display={self.display}, system={self.system})"
+```
+
+| Field        | Type   | Description                                                           |
+|--------------|--------|-----------------------------------------------------------------------|
+| `code`       | string | Unique identifier in `NAM-NNN` format                                |
+| `display`    | string | Human-readable name of the condition                                  |
+| `definition` | string | Plain-language clinical description of the condition                  |
+| `system`     | string | Originating discipline — one of `Ayurveda`, `Siddha`, or `Unani`    |
+
+### Example NAMASTE Codes
+
+The following codes are drawn directly from `sample-namaste.csv` and represent conditions across all three AYUSH disciplines:
+
+| Code    | Display              | Definition                                                           | System   |
+|---------|----------------------|----------------------------------------------------------------------|----------|
+| NAM-001 | Common Cold          | An upper respiratory tract infection caused by various viruses       | Ayurveda |
+| NAM-007 | Jwara                | Fever or elevated body temperature                                   | Ayurveda |
+| NAM-004 | Joint Pain           | Pain in one or more joints                                           | Siddha   |
+| NAM-005 | Digestive Issues     | Problems with digestion or gastrointestinal function                 | Unani    |
+| NAM-021 | Madhumeha            | Diabetes mellitus                                                    | Ayurveda |
+| NAM-025 | Pandu                | Anemia or pallor                                                     | Ayurveda |
+| NAM-071 | Surra                | Surra or trypanosomiasis                                             | Unani    |
+| NAM-097 | Yara                 | Malaria                                                              | Unani    |
+
+---
+
+## ICD-11 Codes
+
+The **International Classification of Diseases, 11th Revision (ICD-11)**, published by the World Health Organization, is the global standard for recording diagnoses in clinical and research settings. Ayush Synapse works with two ICD-11 chapters that are relevant to traditional and complementary medicine:
+
+- **TM2 — Traditional Medicine Module 2**: A dedicated ICD-11 module that provides codes for conditions recognised in East Asian, South Asian, and other traditional medicine systems. TM2 codes follow the format `TM2-NNN`.
+- **Biomedicine**: The conventional biomedical chapter of ICD-11. Biomedicine codes follow the format `BM-NNN`. Mapping NAMASTE codes to Biomedicine targets allows AYUSH records to participate in conventional biomedical workflows.
+
+### Icd11Code Model
+
+The `Icd11Code` Python class (defined in `app/models/icd11_code.py`) represents a single ICD-11 entry:
+
+```python
+class Icd11Code:
+    def __init__(self, code, display, definition, chapter):
+        self.code = code
+        self.display = display
+        self.definition = definition
+        self.chapter = chapter  # TM2 or Biomedicine
+
+    def to_fhir_codesystem(self):
+        return {
+            "code": self.code,
+            "display": self.display,
+            "definition": self.definition
+        }
+
+    def __repr__(self):
+        return f"Icd11Code(code={self.code}, display={self.display}, chapter={self.chapter})"
+```
+
+| Field        | Type   | Description                                                  |
+|--------------|--------|--------------------------------------------------------------|
+| `code`       | string | Unique identifier — `TM2-NNN` for TM2, `BM-NNN` for Biomedicine |
+| `display`    | string | Human-readable name of the ICD-11 concept                   |
+| `definition` | string | Clinical definition of the concept                           |
+| `chapter`    | string | ICD-11 chapter — either `TM2` or `Biomedicine`              |
+
+### Example ICD-11 Codes
+
+| Code    | Display                   | Definition                                          | Chapter      |
+|---------|---------------------------|-----------------------------------------------------|--------------|
+| TM2-001 | Common Cold               | Acute viral rhinitis                                | TM2          |
+| TM2-002 | Headache                  | Pain in head or neck                                | TM2          |
+| TM2-003 | Fever                     | Elevated body temperature                           | TM2          |
+| TM2-004 | Joint Pain                | Arthralgia                                          | TM2          |
+| TM2-005 | Digestive Issues          | Gastrointestinal symptoms                           | TM2          |
+| BM-001  | Acute rhinitis            | Acute inflammation of the nasal mucosa              | Biomedicine  |
+| BM-002  | Tension-type headache     | Headache caused by muscle tension                   | Biomedicine  |
+| BM-004  | Arthralgia                | Joint pain without inflammation                     | Biomedicine  |
+| BM-005  | Dyspepsia                 | Indigestion or stomach discomfort                   | Biomedicine  |
+
+---
+
+## Concept Mapping
+
+A **ConceptMap** is the bridge between a NAMASTE source code and one or more ICD-11 target codes. Each mapping record captures not only which codes correspond but also the *nature* and *confidence* of that correspondence.
+
+### ConceptMap Model
+
+The `ConceptMap` Python class (defined in `app/models/concept_map.py`) models a single directional mapping:
+
+```python
+class ConceptMap:
+    def __init__(self, source_code, target_code, equivalence, source_system, target_system, confidence=1.0):
+        self.source_code = source_code
+        self.target_code = target_code
+        self.equivalence = equivalence  # Types: equivalent, equal, wider, subsumes, etc.
+        self.source_system = source_system
+        self.target_system = target_system
+        self.confidence = confidence  # 0.0 to 1.0
+
+    def to_fhir_conceptmap(self):
+        return {
+            "sourceCode": self.source_code,
+            "targetCode": self.target_code,
+            "equivalence": self.equivalence,
+            "confidence": self.confidence
+        }
+
+    def __repr__(self):
+        return f"ConceptMap(source={self.source_code}, target={self.target_code}, equivalence={self.equivalence})"
+```
+
+| Field           | Type   | Description                                                                    |
+|-----------------|--------|--------------------------------------------------------------------------------|
+| `source_code`   | string | NAMASTE code being mapped (e.g., `NAM-001`)                                   |
+| `target_code`   | string | ICD-11 code that the source maps to (e.g., `TM2-001`)                         |
+| `equivalence`   | string | Semantic relationship between the two codes (see table below)                  |
+| `source_system` | string | Always `NAMASTE` in the current dataset                                        |
+| `target_system` | string | Either `ICD-11 TM2` or `ICD-11 Biomedicine`                                  |
+| `confidence`    | float  | Mapping confidence score, from `0.0` (no confidence) to `1.0` (certainty)     |
+
+### Equivalence Types
+
+The `equivalence` field follows the FHIR ConceptMapEquivalence value set:
+
+| Value        | Meaning                                                                                     |
+|--------------|---------------------------------------------------------------------------------------------|
+| `equivalent` | The source and target concepts are clinically and semantically equivalent.                  |
+| `equal`      | The source and target concepts are exactly the same (identical definitions and scope).      |
+| `wider`      | The target concept is broader than the source; the source is a subset of the target.        |
+| `subsumes`   | The target concept subsumes the source; the source is a specialisation of the target.       |
+
+### Confidence Score
+
+The `confidence` field is a floating-point value between `0.0` and `1.0` that reflects the certainty of the mapping:
+
+- **0.9 – 1.0**: High confidence — codes share near-identical clinical meaning and scope.
+- **0.75 – 0.89**: Moderate confidence — codes are clinically related but may differ in scope or granularity.
+- **Below 0.75**: Low confidence — the mapping is approximate and should be reviewed by a clinical expert.
+
+### Example Mapping
+
+The mapping below illustrates how `NAM-001` (Ayurvedic Common Cold) is linked to `TM2-001` (ICD-11 TM2 Common Cold) with high confidence:
+
+```python
+ConceptMap(
+    source_code="NAM-001",
+    target_code="TM2-001",
+    equivalence="equivalent",
+    source_system="NAMASTE",
+    target_system="ICD-11 TM2",
+    confidence=0.9
+)
+```
+
+The same NAMASTE code can also target the Biomedicine chapter — for example, `NAM-011` (Arsha — piles/haemorrhoids) maps to `BM-001` with a confidence of `0.87`.
+
+---
+
+## Coverage Statistics
+
+The Ayush Synapse MVP ships with **85 pre-built concept mappings** derived from the `sample-namaste.csv` dataset of 100 NAMASTE codes. This gives an out-of-the-box **mapping coverage of 85%**.
+
+| Metric                          | Value        |
+|---------------------------------|--------------|
+| Total NAMASTE codes in dataset  | 100          |
+| Pre-built mappings              | 85           |
+| Coverage percentage             | 85%          |
+| Target systems covered          | TM2, Biomedicine |
+| Minimum confidence score        | 0.75         |
+| Maximum confidence score        | 0.95         |
+
+<Info>
+In the current MVP, the WHO ICD-11 API integration (`WhoApiService`) returns sample data. Production deployment can integrate with the live WHO API by setting the `WHO_API_KEY` environment variable and replacing the placeholder `fetch_tm2_codes()` and `fetch_biomedicine_codes()` methods in `app/services/who_api_service.py` with real HTTP calls to `https://icd.who.int/dev11`.
+</Info>

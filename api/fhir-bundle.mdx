@@ -1,0 +1,157 @@
+---
+title: "POST /bundle — Ingest a FHIR Bundle with Dual Coding"
+sidebarTitle: "POST /bundle"
+description: "POST /bundle accepts a FHIR R4 Bundle payload for ingestion. Returns bundle ID and entry count. Rate limited to 20 requests per minute."
+---
+
+The `/bundle` endpoint accepts a FHIR R4 Bundle, processes its entries with dual coding (NAMASTE + ICD-11), and returns a confirmation response acknowledging receipt of the payload.
+
+## Endpoint
+
+**Method:** `POST`  
+**Path:** `/bundle`  
+**Auth:** None (demo mode)  
+**Rate Limit:** 20 requests per minute
+
+## Request Body
+
+The request body must be a valid FHIR R4 Bundle JSON object. Both fields are optional — if omitted, the server returns sensible defaults.
+
+<ParamField body="id" type="string">
+  An optional identifier for the Bundle. Returned as `bundle_id` in the response. If not provided, defaults to `"unknown"`.
+</ParamField>
+
+<ParamField body="entry" type="array">
+  An optional array of FHIR Bundle entries. The server counts the number of entries and returns the total in `entries_processed`.
+</ParamField>
+
+## Response
+
+<ResponseField name="message" type="string">
+  Confirmation message. Always `"Bundle ingested successfully"` on a `200` response.
+</ResponseField>
+
+<ResponseField name="bundle_id" type="string">
+  The `id` value from the submitted Bundle, or `"unknown"` if no `id` was provided.
+</ResponseField>
+
+<ResponseField name="entries_processed" type="integer">
+  The number of entries found in the `entry` array of the submitted Bundle.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST http://localhost:5000/bundle \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resourceType": "Bundle",
+    "id": "bundle-example-001",
+    "type": "collection",
+    "entry": [
+      {
+        "resource": {
+          "resourceType": "Condition",
+          "code": {
+            "coding": [
+              {
+                "system": "http://example.com/codesystem/namaste-codes",
+                "code": "NAM-001",
+                "display": "Common Cold"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "resource": {
+          "resourceType": "Condition",
+          "code": {
+            "coding": [
+              {
+                "system": "http://example.com/codesystem/namaste-codes",
+                "code": "NAM-002",
+                "display": "Headache"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }'
+```
+
+```javascript JavaScript
+const bundle = {
+  resourceType: 'Bundle',
+  id: 'bundle-example-001',
+  type: 'collection',
+  entry: [
+    {
+      resource: {
+        resourceType: 'Condition',
+        code: {
+          coding: [
+            {
+              system: 'http://example.com/codesystem/namaste-codes',
+              code: 'NAM-001',
+              display: 'Common Cold'
+            }
+          ]
+        }
+      }
+    },
+    {
+      resource: {
+        resourceType: 'Condition',
+        code: {
+          coding: [
+            {
+              system: 'http://example.com/codesystem/namaste-codes',
+              code: 'NAM-002',
+              display: 'Headache'
+            }
+          ]
+        }
+      }
+    }
+  ]
+};
+
+const response = await fetch('/bundle', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(bundle)
+});
+
+const result = await response.json();
+console.log(result);
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "message": "Bundle ingested successfully",
+  "bundle_id": "bundle-example-001",
+  "entries_processed": 2
+}
+```
+
+## Error Responses
+
+| Status | Condition |
+|---|---|
+| `400 Bad Request` | No JSON body was provided in the request. |
+
+```json 400 — No Body Provided
+{
+  "error": "No data provided"
+}
+```
+
+<Note>
+  In the current MVP, bundle processing acknowledges receipt and returns entry counts. Full FHIR Bundle validation, individual resource extraction, and dual-coding enrichment are planned for future releases.
+</Note>

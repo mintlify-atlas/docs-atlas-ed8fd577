@@ -1,0 +1,88 @@
+---
+title: "GET /i18n/{lang}.json — Multilingual Translation Files"
+sidebarTitle: "GET /i18n/{lang}"
+description: "GET /i18n/{lang}.json serves JSON translation files for 16 Indian languages. Use language codes like en, hi, ta, te, ml to localize the dashboard interfaces."
+---
+
+Ayush Synapse serves static translation files for multilingual dashboard support. Each language file is a flat JSON key-value map where keys are UI string identifiers and values are the localized strings used by the frontend dashboards.
+
+## Endpoint
+
+**Method:** `GET`  
+**Path:** `/i18n/{lang}.json`  
+**Auth:** None
+
+### Path Parameter
+
+<ParamField path="lang" type="string" required>
+  The BCP 47 language code identifying which translation file to serve (e.g. `hi`, `ta`, `en`). See the [Supported Languages](#supported-languages) table below for all valid values.
+</ParamField>
+
+### Response
+
+On success, returns a `200 OK` with a `Content-Type: application/json` body containing a JSON object of translation key-value pairs.
+
+If the requested language file does not exist, the server returns a `404`:
+
+```json 404 — Language File Not Found
+{
+  "error": "Language file not found"
+}
+```
+
+## Supported Languages
+
+| Language | Code |
+|---|---|
+| English | `en` |
+| Hindi | `hi` |
+| Tamil | `ta` |
+| Telugu | `te` |
+| Malayalam | `ml` |
+| Kannada | `kn` |
+| Bengali | `bn` |
+| Marathi | `mr` |
+| Gujarati | `gu` |
+| Punjabi | `pa` |
+| Odia | `or` |
+| Assamese | `as` |
+| Urdu | `ur` |
+| Sanskrit | `sa` |
+| Konkani | `kok` |
+| Manipuri | `mni` |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/i18n/hi.json
+```
+
+```javascript JavaScript
+const response = await fetch('/i18n/hi.json');
+const translations = await response.json();
+console.log(translations);
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "app.title": "आयुष सिनैप्स",
+  "nav.search": "खोजें",
+  "nav.mappings": "मैपिंग",
+  "nav.translate": "अनुवाद करें",
+  "search.placeholder": "कोड या लक्षण खोजें...",
+  "search.results": "परिणाम",
+  "mapping.source": "स्रोत कोड",
+  "mapping.target": "लक्ष्य कोड",
+  "mapping.confidence": "विश्वास स्कोर"
+}
+```
+
+## Usage
+
+The frontend dashboards call this endpoint automatically when a user switches the interface language. The selected `lang` code is stored in the browser's local state, and on each language change the dashboard fetches the corresponding `/i18n/{lang}.json` file and re-renders all UI strings using the returned key-value map.
+
+Translation files are served directly from the `static/i18n/` directory of the application. To add a new language, place a `{lang}.json` file in that directory following the same key structure as the existing files.

@@ -1,0 +1,168 @@
+---
+title: "Deploy Ayush Synapse with Docker Compose"
+sidebarTitle: "Docker"
+description: "Build and run Ayush Synapse using Docker Compose for cloud or on-premise deployments with environment variable configuration."
+---
+
+Docker Compose is the recommended deployment method for cloud and production-like environments. The included `Dockerfile` builds from a **Python 3.9 slim** base image, runs the application as a **non-root `app` user** for improved security, and exposes **port 5000**. A built-in health check polls `/health` every 30 seconds so container orchestrators can detect failures automatically.
+
+<Note>
+  **Prerequisites** — Make sure the following are installed on your host machine:
+  - [Docker 20.10+](https://docs.docker.com/get-docker/)
+  - [Docker Compose v2](https://docs.docker.com/compose/install/) (`docker compose` CLI, not the legacy `docker-compose` v1)
+</Note>
+
+## Deployment Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone <repository-url>
+    cd ayush-synapse
+    ```
+  </Step>
+
+  <Step title="(Optional) Create a .env File">
+    To override any default environment variable, create a `.env` file in the project root before building:
+
+    ```bash
+    cp .env.example .env
+    # Edit .env with your preferred values
+    ```
+
+    Docker Compose automatically reads `.env` from the project directory and passes matching variables to the container. See the [Configuration reference](/deployment/configuration) for every supported variable.
+  </Step>
+
+  <Step title="Build and Start the Service">
+    ```bash
+    docker compose up -d
+    ```
+
+    Docker will build the image on the first run. Subsequent starts reuse the cached image unless you pass `--build`.
+  </Step>
+
+  <Step title="Verify the Service is Running">
+    ```bash
+    curl http://localhost:5000/health
+    ```
+
+    A healthy response returns HTTP `200` with a JSON status payload. If the container is still in its start-up period (`start_period: 40s`), wait a moment and retry.
+  </Step>
+</Steps>
+
+## Docker Compose Configuration
+
+The `docker-compose.yml` at the repository root defines a single `ayush-synapse` service:
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  ayush-synapse:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      - FLASK_DEBUG=False
+      - DEMO_MODE=True
+      - DEMO_USER_ACCESS=true
+      - CORS_ORIGINS=*
+    volumes:
+      - ./instance:/app/instance
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+| Field | Description |
+|---|---|
+| `ports` | Maps host port `5000` to container port `5000`. Change the left value (e.g. `"8080:5000"`) to serve on a different host port. |
+| `environment` | Inline environment variables passed to the Flask process. These can be overridden by a `.env` file or CI/CD secrets. |
+| `volumes` | Mounts `./instance` on the host into `/app/instance` in the container, persisting the SQLite database across restarts. |
+| `restart` | `unless-stopped` ensures the container restarts automatically after a crash or host reboot, unless manually stopped. |
+| `healthcheck` | Polls `GET /health` every 30 seconds; marks the container unhealthy after 3 consecutive failures. |
+
+## Dockerfile Overview
+
+```dockerfile Dockerfile
+# Python 3.9 slim base keeps the image footprint small
+FROM python:3.9-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_HOST=0.0.0.0 \
+    FLASK_PORT=5000
+
+# Install build dependencies, then clean up apt cache
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Create and switch to a non-root user
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+CMD ["python", "app.py"]
+```
+
+Key design decisions in the `Dockerfile`:
+
+- **`python:3.9-slim`** — minimal Debian-based image; reduces attack surface and pull time.
+- **`PYTHONDONTWRITEBYTECODE` / `PYTHONUNBUFFERED`** — prevents `.pyc` clutter and ensures logs stream in real time.
+- **Non-root `app` user** — the application never runs as `root`, limiting the blast radius of a container escape.
+- **`--no-cache-dir`** on pip — keeps the image layer lean.
+- **`HEALTHCHECK`** — container platforms (Docker Swarm, ECS, etc.) use this to gate traffic until the service is ready.
+
+## Persistent Storage
+
+The `volumes` entry in `docker-compose.yml` maps the host directory `./instance` to `/app/instance` inside the container:
+
+```yaml
+volumes:
+  - ./instance:/app/instance
+```
+
+Ayush Synapse writes its SQLite database (`ayush_synapse.db`) into the `/app/instance` directory. Without this mount, the database would be lost every time the container is recreated. With the mount:
+
+- Data survives `docker compose down` and `docker compose up`.
+- You can back up the SQLite file directly from the host at `./instance/ayush_synapse.db`.
+- Replacing the container image (`docker compose pull` + `up -d`) does not wipe existing records.
+
+## Health Check Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | `GET` | Basic liveness check — returns `200 OK` if the process is running. |
+| `/health/detailed` | `GET` | Detailed readiness check — includes database connectivity, dependency status, and uptime metrics. |
+
+Use `/health/detailed` in load-balancer readiness probes to ensure the service is fully initialised before receiving traffic.
+
+<Warning>
+  The default `docker-compose.yml` stores data in a local SQLite file, which is **not suitable for multi-replica or high-availability deployments**. For production, set the `DATABASE_URL` environment variable to point to a managed PostgreSQL instance:
+
+  ```yaml
+  environment:
+    - DATABASE_URL=postgresql://user:password@db-host:5432/ayush_synapse
+  ```
+
+  See the [Configuration reference](/deployment/configuration) for the full list of production-recommended settings.
+</Warning>

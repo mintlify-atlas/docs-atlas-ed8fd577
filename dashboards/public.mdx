@@ -1,0 +1,113 @@
+---
+title: "Public Health Dashboard for Patient-Facing Search"
+sidebarTitle: "Public"
+description: "The Public Dashboard offers a simple, multilingual condition search for non-technical users, providing health awareness content and NAMASTE-ICD-11 mappings."
+---
+
+The Public Dashboard (served at `/public.html`) is designed for general users, patients, and community health workers who need a straightforward interface to look up medical conditions without any technical knowledge of coding systems. The dashboard keeps clinical terminology out of the way and surfaces plain-language condition names, their AYUSH-system labels, and corresponding ICD-11 mappings in a clean, accessible layout that works equally well in English or any of 16 Indian languages.
+
+## Accessing the Dashboard
+
+Start the Ayush Synapse server and navigate to:
+
+```
+http://localhost:5000/public.html
+```
+
+No login, token, or configuration is required. The page loads instantly and is ready to search.
+
+## Features
+
+<AccordionGroup>
+  <Accordion title="Simple Condition Search" icon="magnifying-glass">
+    The Public Dashboard provides a single-field search bar. Type any condition name in your preferred language and the interface calls `GET /api/search` to return matching NAMASTE codes alongside their ICD-11 equivalents.
+
+    Results are displayed as plain-language cards showing:
+
+    - **Condition name** (the `Display_Term` from the NAMASTE code)
+    - **AYUSH system** label (e.g., Ayurveda, Siddha, or Unani)
+    - **ICD-11 mapped code** and its display name, where available
+    - A short **definition** of the condition
+
+    No filters, parameters, or technical configuration are exposed to the user.
+  </Accordion>
+
+  <Accordion title="Health Awareness Content" icon="heart-pulse">
+    Between search results the dashboard surfaces contextual health awareness content explaining the three AYUSH medicine systems covered by NAMASTE codes:
+
+    - **Ayurveda** — India's classical system of medicine based on humoral balance (tridosha theory)
+    - **Siddha** — a traditional Tamil system of medicine emphasising pulse diagnosis and herbal compounds
+    - **Unani** — Greco-Arabic medicine as practised in South Asia, centred on the four temperaments
+
+    This content helps users understand why a condition may carry both a NAMASTE code and an ICD-11 code, and what each coding system represents.
+  </Accordion>
+
+  <Accordion title="Multilingual Interface" icon="language">
+    The Public Dashboard exposes a language selector that covers all 16 Indian languages served by:
+
+    ```
+    GET /i18n/{lang}.json
+    ```
+
+    Selecting a language swaps every UI label and static string without reloading the page.
+
+    **Supported language codes:**
+
+    | Code | Language   | Code | Language   |
+    | ---- | ---------- | ---- | ---------- |
+    | `en` | English    | `ml` | Malayalam  |
+    | `hi` | Hindi      | `mr` | Marathi    |
+    | `bn` | Bengali    | `pa` | Punjabi    |
+    | `gu` | Gujarati   | `sa` | Sanskrit   |
+    | `kn` | Kannada    | `ta` | Tamil      |
+    | `as` | Assamese   | `ur` | Urdu       |
+    | `ks` | Kashmiri   | `or` | Odia       |
+    | `ne` | Nepali     | `sd` | Sindhi     |
+
+    **Example — fetch the Hindi translation bundle:**
+
+    ```bash
+    curl http://localhost:5000/i18n/hi.json
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Authentication
+
+**No authentication is required for the Public Dashboard.** All features on this page are powered exclusively by `GET /api/search` and `GET /i18n/{lang}.json`, both of which are open, unauthenticated endpoints.
+
+```bash
+# Search for a condition — no token needed
+curl "http://localhost:5000/api/search?q=fever"
+```
+
+<Note>
+  The Public Dashboard does not expose or link to any protected endpoints, FHIR resource exports, or clinical analytics. Sensitive operational data is restricted to the Professional and Technical dashboards.
+</Note>
+
+## Example Search: "Fever"
+
+Searching for `fever` returns NAMASTE codes that match in the code identifier, display name, or definition field. A typical response includes:
+
+```json
+[
+  {
+    "NAMASTE_Code": "NAM-003",
+    "Display_Term": "Fever",
+    "Definition": "Elevated body temperature above normal range",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-003",
+    "Target_Display": "Fever — ICD-11 TM2"
+  },
+  {
+    "NAMASTE_Code": "NAM-007",
+    "Display_Term": "Intermittent Fever",
+    "Definition": "Fever that periodically rises and falls",
+    "System": "Ayurveda",
+    "Target_Code": "TM2-007",
+    "Target_Display": "Intermittent Fever — ICD-11 TM2"
+  }
+]
+```
+
+The dashboard renders each result card with the NAMASTE code (`NAM-003`, `NAM-007`), the plain-language name, a brief definition, and the corresponding ICD-11 mapping — presented without any technical jargon.

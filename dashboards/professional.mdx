@@ -1,0 +1,201 @@
+---
+title: "Professional Dashboard for Clinicians and Researchers"
+sidebarTitle: "Professional"
+description: "The Professional Dashboard provides advanced medical code search, dual coding tools, FHIR resource access, and analytics for clinicians and health informatics teams."
+---
+
+The Professional Dashboard (served at `/professional.html`) is designed for clinicians, health informaticians, and researchers who require precise NAMASTE-ICD-11 mapping, direct access to FHIR R4 resources, and data-driven analytics. It exposes the full power of the Ayush Synapse API through a structured interface that surfaces equivalence scores, confidence levels, and system-level metadata alongside every result.
+
+## Accessing the Dashboard
+
+<Steps>
+  <Step title="Start the Flask server">
+    From the project root, run:
+
+    ```bash
+    python app.py
+    ```
+
+    The server starts on `http://0.0.0.0:5000` by default. You can override the host and port via the `FLASK_HOST` and `FLASK_PORT` environment variables.
+  </Step>
+  <Step title="Open the dashboard in your browser">
+    Navigate to:
+
+    ```
+    http://localhost:5000/professional.html
+    ```
+
+    The dashboard loads immediately — no login is required to view the interface. Protected API calls (FHIR resources, mappings) require a demo token; see [Authentication](#authentication) below.
+  </Step>
+</Steps>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Advanced Search" icon="magnifying-glass">
+    The search bar queries both NAMASTE and ICD-11 code sets simultaneously via `GET /api/search`. Three query parameters let you narrow results without leaving the page:
+
+    | Parameter  | Values                                    | Description                                         |
+    | ---------- | ----------------------------------------- | --------------------------------------------------- |
+    | `?q=`      | Any search term (minimum 2 characters)   | Full-text match on code, display name, and definition |
+    | `?system=` | `all` · `Ayurveda` · `Siddha` · `Unani` · `TM2` · `Biomedicine` | Filter results to a specific coding system |
+    | `?mapping=` | `all` · `mapped` · `unmapped`           | Show only codes that have (or lack) a cross-system mapping |
+
+    **Example — search for fever in Ayurvedic codes only:**
+
+    ```bash
+    curl "http://localhost:5000/api/search?q=fever&system=Ayurveda&mapping=mapped"
+    ```
+
+    ```json
+    [
+      {
+        "NAMASTE_Code": "NAM-003",
+        "Display_Term": "Fever",
+        "Definition": "Elevated body temperature above normal range",
+        "System": "Ayurveda",
+        "Target_Code": "TM2-003",
+        "Target_Display": "Fever — ICD-11 TM2"
+      }
+    ]
+    ```
+  </Accordion>
+
+  <Accordion title="Dual Coding Tools" icon="code-compare">
+    Every search result card in the Professional Dashboard shows both the source NAMASTE code and its mapped ICD-11 target side by side. The card surface includes:
+
+    - **Source code** (`NAM-XXX`) with AYUSH system label (Ayurveda, Siddha, or Unani)
+    - **Target code** (`TM2-XXX` or `BM-XXX`) with ICD-11 chapter label
+    - **Equivalence** — always `equivalent` in the current dataset
+    - **Confidence score** — a float between `0.75` and `0.95` reflecting the mapping strength
+
+    Use `GET /mappings` to retrieve the full list of 85 cross-system mappings in JSON:
+
+    ```bash
+    curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+         http://localhost:5000/mappings
+    ```
+
+    ```json
+    [
+      {
+        "sourceCode": "NAM-003",
+        "targetCode": "TM2-003",
+        "equivalence": "equivalent",
+        "sourceSystem": "NAMASTE",
+        "targetSystem": "ICD-11 TM2",
+        "confidence": 0.95
+      }
+    ]
+    ```
+  </Accordion>
+
+  <Accordion title="FHIR Resource Access" icon="file-medical">
+    The dashboard provides direct links to the three FHIR R4 resources exported by Ayush Synapse:
+
+    | Resource       | Endpoint                  | Description                                                           |
+    | -------------- | ------------------------- | --------------------------------------------------------------------- |
+    | NAMASTE CodeSystem | `GET /codesystem/namaste` | FHIR R4 `CodeSystem` for all NAMASTE codes (full definitions, system labels) |
+    | ICD-11 CodeSystem  | `GET /codesystem/icd11`   | FHIR R4 `CodeSystem` combining TM2 and Biomedicine codes              |
+    | ConceptMap         | `GET /conceptmap`         | FHIR R4 `ConceptMap` from `namaste-codes` → `icd11/tm2`               |
+
+    **Example — fetch the NAMASTE CodeSystem:**
+
+    ```bash
+    curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+         http://localhost:5000/codesystem/namaste
+    ```
+
+    The response is a fully valid FHIR R4 `CodeSystem` JSON resource with `resourceType`, `id`, `url`, `status`, and `concept` array.
+  </Accordion>
+
+  <Accordion title="Analytics Dashboard" icon="chart-bar">
+    The analytics panel is populated by `GET /api/stats`, which returns mapping coverage metrics broken down by coding system and chapter:
+
+    ```bash
+    curl http://localhost:5000/api/stats
+    ```
+
+    ```json
+    {
+      "namaste_codes": {
+        "total": 85,
+        "by_system": {
+          "Ayurveda": 60,
+          "Siddha": 15,
+          "Unani": 10
+        }
+      },
+      "icd11_codes": {
+        "tm2_total": 55,
+        "biomedicine_total": 30
+      },
+      "mappings": {
+        "mapped": 85,
+        "unmapped": 0,
+        "coverage_percentage": 100.0
+      }
+    }
+    ```
+
+    The dashboard renders coverage percentage as a progress bar and displays per-system breakdowns as a bar chart.
+  </Accordion>
+</AccordionGroup>
+
+## Authentication
+
+The Professional Dashboard uses the **demo token** issued by `POST /auth/login`. No account registration is required.
+
+<Steps>
+  <Step title="Request a demo token">
+    ```bash
+    curl -X POST http://localhost:5000/auth/login \
+         -H "Content-Type: application/json" \
+         -d '{"user_id": "demo_user", "role": "clinician"}'
+    ```
+
+    ```json
+    {
+      "message": "Authentication successful",
+      "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+      "user_id": "demo_user",
+      "role": "clinician",
+      "demo_mode": true,
+      "permissions": {
+        "can_access_all_endpoints": true,
+        "can_view_all_data": true,
+        "can_perform_translations": true,
+        "can_access_fhir_resources": true
+      }
+    }
+    ```
+  </Step>
+  <Step title="Attach the token to protected requests">
+    Copy the value of `"token"` from the response and pass it as a Bearer token in the `Authorization` header:
+
+    ```bash
+    curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+         http://localhost:5000/codesystem/namaste
+    ```
+
+    The dashboard stores the token in the browser session automatically once entered in the token input field.
+  </Step>
+</Steps>
+
+<Note>
+  The demo token grants full access to every protected endpoint. There is no expiry enforced in demo mode, so you can reuse the same token throughout a session.
+</Note>
+
+## Related API Endpoints
+
+The following endpoints are called directly by the Professional Dashboard:
+
+| Method | Endpoint               | Auth Required | Description                                        |
+| ------ | ---------------------- | ------------- | -------------------------------------------------- |
+| `GET`  | `/api/search`          | No            | Full-text search with system and mapping filters   |
+| `GET`  | `/mappings`            | No            | All 85 NAMASTE→ICD-11 concept mappings             |
+| `GET`  | `/codesystem/namaste`  | No            | FHIR R4 CodeSystem for NAMASTE codes               |
+| `GET`  | `/codesystem/icd11`    | No            | FHIR R4 CodeSystem for ICD-11 TM2 + Biomedicine    |
+| `GET`  | `/conceptmap`          | No            | FHIR R4 ConceptMap (NAMASTE → ICD-11)              |
+| `GET`  | `/api/stats`           | No            | Mapping coverage statistics                        |
+| `POST` | `/auth/login`          | —             | Issues a demo JWT token                            |

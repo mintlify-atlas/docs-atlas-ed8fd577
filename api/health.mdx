@@ -1,0 +1,203 @@
+---
+title: "Health Check Endpoints for Monitoring Ayush Synapse"
+sidebarTitle: "Health"
+description: "GET /health returns basic health status. GET /health/detailed returns service-level checks including data loading and service availability."
+---
+
+Ayush Synapse exposes two health check endpoints used by Docker containers, load balancers, and external monitoring systems. Both endpoints are unauthenticated and always return `200 OK` regardless of internal state — the `status` field in the body reflects the actual health signal.
+
+---
+
+## GET /health — Basic Health Check
+
+**Method:** `GET`  
+**Path:** `/health`  
+**Auth:** None
+
+A lightweight liveness probe that confirms the application process is running and data has been loaded.
+
+### Response Fields
+
+<ResponseField name="status" type="string">
+  Always `"healthy"` when the process is running.
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  UTC timestamp in ISO 8601 format at the time the request was handled (e.g. `"2025-01-15T10:30:00.123456"`).
+</ResponseField>
+
+<ResponseField name="demo_mode" type="boolean">
+  Whether the application is running in demo mode. Controlled by the `DEMO_MODE` environment variable.
+</ResponseField>
+
+<ResponseField name="namaste_codes_count" type="integer">
+  Number of NAMASTE codes currently loaded in memory.
+</ResponseField>
+
+<ResponseField name="mappings_count" type="integer">
+  Number of concept mappings currently loaded in memory.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/health
+```
+
+```javascript JavaScript
+const response = await fetch('/health');
+const health = await response.json();
+console.log(health);
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:30:00.123456",
+  "demo_mode": true,
+  "namaste_codes_count": 100,
+  "mappings_count": 85
+}
+```
+
+---
+
+## GET /health/detailed — Detailed Health Check
+
+**Method:** `GET`  
+**Path:** `/health/detailed`  
+**Auth:** None
+
+A readiness probe that performs per-component checks across data loading and service availability. Use this endpoint for monitoring dashboards and alerting pipelines.
+
+### Response Fields
+
+<ResponseField name="status" type="string">
+  `"healthy"` if all component checks pass, or `"degraded"` if one or more checks fail.
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  UTC timestamp in ISO 8601 format.
+</ResponseField>
+
+<ResponseField name="demo_mode" type="boolean">
+  Whether demo mode is active.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Boolean flags for each data loading check.
+
+  <Expandable title="data fields">
+    <ResponseField name="data.namaste_codes" type="boolean">
+      `true` if at least one NAMASTE code is loaded.
+    </ResponseField>
+    <ResponseField name="data.concept_maps" type="boolean">
+      `true` if at least one concept mapping is loaded.
+    </ResponseField>
+    <ResponseField name="data.sample_data_loaded" type="boolean">
+      `true` if both NAMASTE codes and concept maps are loaded.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="services" type="object">
+  Boolean flags for each service availability check.
+
+  <Expandable title="services fields">
+    <ResponseField name="services.csv_parser_service" type="boolean">
+      `true` when the CSV parser service is operational.
+    </ResponseField>
+    <ResponseField name="services.who_api_service" type="boolean">
+      `true` when the WHO API service is available and has the expected interface.
+    </ResponseField>
+    <ResponseField name="services.auth_service" type="boolean">
+      `true` when the authentication service is available and has the expected interface.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="counts" type="object">
+  Raw integer counts for loaded data.
+
+  <Expandable title="counts fields">
+    <ResponseField name="counts.namaste_codes" type="integer">
+      Number of NAMASTE codes in memory.
+    </ResponseField>
+    <ResponseField name="counts.concept_maps" type="integer">
+      Number of concept maps in memory.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/health/detailed
+```
+
+```javascript JavaScript
+const response = await fetch('/health/detailed');
+const health = await response.json();
+console.log(health);
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:30:00.123456",
+  "demo_mode": true,
+  "data": {
+    "namaste_codes": true,
+    "concept_maps": true,
+    "sample_data_loaded": true
+  },
+  "services": {
+    "csv_parser_service": true,
+    "who_api_service": true,
+    "auth_service": true
+  },
+  "counts": {
+    "namaste_codes": 100,
+    "concept_maps": 85
+  }
+}
+```
+
+---
+
+## Status Values
+
+| Value | Meaning |
+|---|---|
+| `healthy` | All data and service checks passed. |
+| `degraded` | One or more data or service checks failed. The application is running but may not be fully operational. |
+
+---
+
+## Docker Health Check Configuration
+
+The Dockerfile configures a health check using the basic `/health` endpoint:
+
+```dockerfile Dockerfile
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+```
+
+The `docker-compose.yml` overrides the timing to allow a longer startup window:
+
+```yaml docker-compose.yml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+```

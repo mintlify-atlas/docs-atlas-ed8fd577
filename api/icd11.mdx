@@ -1,0 +1,372 @@
+---
+title: "ICD-11 Code Endpoints — TM2 and Biomedicine"
+sidebarTitle: "ICD-11 Codes"
+description: "Endpoints for listing and searching ICD-11 Traditional Medicine Module 2 (TM2) and Biomedicine codes. GET /icd11, /icd11/tm2, /icd11/biomedicine, /icd11/search/{term}."
+---
+
+The ICD-11 endpoints expose codes from two chapters of the International Classification of Diseases, 11th Revision: **Traditional Medicine Module 2** (TM2, codes prefixed `TM2-`) and **Biomedicine** (codes prefixed `BM-`). In the current MVP, six sample codes per chapter are returned by the `WhoApiService`. Production deployments can integrate directly with the WHO ICD-11 API by supplying a valid `WHO_API_KEY` environment variable.
+
+---
+
+## GET /icd11 — List All ICD-11 Codes
+
+Returns the combined set of TM2 and Biomedicine codes in a single array.
+
+**Method:** `GET`  
+**Path:** `/icd11`  
+**Auth:** None required (open in demo mode)
+
+### Response
+
+Returns a JSON **array** containing TM2 objects followed by Biomedicine objects.
+
+<ResponseField name="code" type="string">
+  Unique ICD-11 code identifier, e.g. `TM2-001` or `BM-001`.
+</ResponseField>
+
+<ResponseField name="display" type="string">
+  Human-readable code name, e.g. `Common Cold`.
+</ResponseField>
+
+<ResponseField name="definition" type="string">
+  Clinical definition text, e.g. `Acute viral rhinitis`.
+</ResponseField>
+
+<ResponseField name="chapter" type="string">
+  ICD-11 chapter this code belongs to. Either `TM2` or `Biomedicine`.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/icd11
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:5000/icd11');
+const codes = await response.json();
+console.log(codes);
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "code": "TM2-001",
+    "display": "Common Cold",
+    "definition": "Acute viral rhinitis",
+    "chapter": "TM2"
+  },
+  {
+    "code": "TM2-002",
+    "display": "Headache",
+    "definition": "Pain in head or neck",
+    "chapter": "TM2"
+  },
+  {
+    "code": "BM-001",
+    "display": "Acute rhinitis",
+    "definition": "Acute inflammation of the nasal mucosa",
+    "chapter": "Biomedicine"
+  },
+  {
+    "code": "BM-002",
+    "display": "Tension-type headache",
+    "definition": "Headache caused by muscle tension",
+    "chapter": "Biomedicine"
+  }
+]
+```
+
+---
+
+## GET /icd11/tm2 — List TM2 Codes
+
+Returns only the codes that belong to the Traditional Medicine Module 2 chapter (`chapter = "TM2"`).
+
+**Method:** `GET`  
+**Path:** `/icd11/tm2`  
+**Auth:** None required (open in demo mode)
+
+### Response
+
+Same object shape as [`GET /icd11`](#get-icd11-list-all-icd-11-codes). All returned objects will have `"chapter": "TM2"`.
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/icd11/tm2
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:5000/icd11/tm2');
+const tm2Codes = await response.json();
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "code": "TM2-001",
+    "display": "Common Cold",
+    "definition": "Acute viral rhinitis",
+    "chapter": "TM2"
+  },
+  {
+    "code": "TM2-002",
+    "display": "Headache",
+    "definition": "Pain in head or neck",
+    "chapter": "TM2"
+  },
+  {
+    "code": "TM2-003",
+    "display": "Fever",
+    "definition": "Elevated body temperature",
+    "chapter": "TM2"
+  },
+  {
+    "code": "TM2-004",
+    "display": "Joint Pain",
+    "definition": "Arthralgia",
+    "chapter": "TM2"
+  },
+  {
+    "code": "TM2-005",
+    "display": "Digestive Issues",
+    "definition": "Gastrointestinal symptoms",
+    "chapter": "TM2"
+  },
+  {
+    "code": "TM2-006",
+    "display": "Skin Rash",
+    "definition": "Dermatological symptoms",
+    "chapter": "TM2"
+  }
+]
+```
+
+---
+
+## GET /icd11/biomedicine — List Biomedicine Codes
+
+Returns only the codes that belong to the Biomedicine chapter (`chapter = "Biomedicine"`).
+
+**Method:** `GET`  
+**Path:** `/icd11/biomedicine`  
+**Auth:** None required (open in demo mode)
+
+### Response
+
+Same object shape as [`GET /icd11`](#get-icd11-list-all-icd-11-codes). All returned objects will have `"chapter": "Biomedicine"`.
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/icd11/biomedicine
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:5000/icd11/biomedicine');
+const bmCodes = await response.json();
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "code": "BM-001",
+    "display": "Acute rhinitis",
+    "definition": "Acute inflammation of the nasal mucosa",
+    "chapter": "Biomedicine"
+  },
+  {
+    "code": "BM-002",
+    "display": "Tension-type headache",
+    "definition": "Headache caused by muscle tension",
+    "chapter": "Biomedicine"
+  },
+  {
+    "code": "BM-003",
+    "display": "Fever of unknown origin",
+    "definition": "Elevated body temperature without identified cause",
+    "chapter": "Biomedicine"
+  },
+  {
+    "code": "BM-004",
+    "display": "Arthralgia",
+    "definition": "Joint pain without inflammation",
+    "chapter": "Biomedicine"
+  },
+  {
+    "code": "BM-005",
+    "display": "Dyspepsia",
+    "definition": "Indigestion or stomach discomfort",
+    "chapter": "Biomedicine"
+  },
+  {
+    "code": "BM-006",
+    "display": "Dermatitis",
+    "definition": "Inflammatory skin condition",
+    "chapter": "Biomedicine"
+  }
+]
+```
+
+---
+
+## GET /icd11/search/\{term\} — Search ICD-11 Codes
+
+Performs a case-insensitive substring search across the `code`, `display`, and `definition` fields of all ICD-11 codes (both TM2 and Biomedicine).
+
+**Method:** `GET`  
+**Path:** `/icd11/search/{term}`  
+**Auth:** None required (open in demo mode)  
+**Rate limit:** 30 requests per minute per IP address
+
+### Path Parameters
+
+<ParamField path="term" type="string" required>
+  The search term to match against code identifiers, display names, and definitions. For example, `fever` matches `TM2-003 Fever` and `BM-003 Fever of unknown origin`.
+</ParamField>
+
+### Response
+
+Returns a filtered JSON **array** of code objects that contain the search term in at least one of the three searchable fields. Returns an empty array `[]` if no matches are found.
+
+<ResponseField name="code" type="string">
+  ICD-11 code identifier.
+</ResponseField>
+
+<ResponseField name="display" type="string">
+  Human-readable code name.
+</ResponseField>
+
+<ResponseField name="definition" type="string">
+  Clinical definition text.
+</ResponseField>
+
+<ResponseField name="chapter" type="string">
+  `TM2` or `Biomedicine`.
+</ResponseField>
+
+### Example — Search for "fever"
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET http://localhost:5000/icd11/search/fever
+```
+
+```javascript JavaScript
+const term = 'fever';
+const response = await fetch(`http://localhost:5000/icd11/search/${term}`);
+const results = await response.json();
+```
+
+</CodeGroup>
+
+```json Response
+[
+  {
+    "code": "TM2-003",
+    "display": "Fever",
+    "definition": "Elevated body temperature",
+    "chapter": "TM2"
+  },
+  {
+    "code": "BM-003",
+    "display": "Fever of unknown origin",
+    "definition": "Elevated body temperature without identified cause",
+    "chapter": "Biomedicine"
+  }
+]
+```
+
+---
+
+## GET /icd11/\{code\} — Get a Specific ICD-11 Code
+
+Returns the full detail record for a single ICD-11 code.
+
+**Method:** `GET`  
+**Path:** `/icd11/{code}`  
+**Auth:** None required (open in demo mode)
+
+### Path Parameters
+
+<ParamField path="code" type="string" required>
+  The ICD-11 code identifier to retrieve. Must be an exact match, e.g. `TM2-001` or `BM-004`. The lookup searches both TM2 and Biomedicine code sets.
+</ParamField>
+
+### Response
+
+Returns a single code object on success, or **HTTP 404** when the code is not found.
+
+<ResponseField name="code" type="string">
+  ICD-11 code identifier.
+</ResponseField>
+
+<ResponseField name="display" type="string">
+  Human-readable code name.
+</ResponseField>
+
+<ResponseField name="definition" type="string">
+  Clinical definition text.
+</ResponseField>
+
+<ResponseField name="chapter" type="string">
+  `TM2` or `Biomedicine`.
+</ResponseField>
+
+```json 404 Response
+{
+  "error": "Code not found"
+}
+```
+
+### Example
+
+<CodeGroup>
+
+```bash cURL — TM2 code
+curl -X GET http://localhost:5000/icd11/TM2-003
+```
+
+```bash cURL — Biomedicine code
+curl -X GET http://localhost:5000/icd11/BM-005
+```
+
+</CodeGroup>
+
+```json Response — TM2-003
+{
+  "code": "TM2-003",
+  "display": "Fever",
+  "definition": "Elevated body temperature",
+  "chapter": "TM2"
+}
+```
+
+```json Response — BM-005
+{
+  "code": "BM-005",
+  "display": "Dyspepsia",
+  "definition": "Indigestion or stomach discomfort",
+  "chapter": "Biomedicine"
+}
+```
+
+---
+
+<Info>
+  In the current MVP, `WhoApiService` returns **6 sample TM2 codes** (`TM2-001` – `TM2-006`) and **6 sample Biomedicine codes** (`BM-001` – `BM-006`). These are returned directly without a live network call. To integrate with the real WHO ICD-11 API, set the `WHO_API_KEY` environment variable. The service connects to `https://icd.who.int/dev11` and passes the key via an `API-Key` header on each request.
+</Info>
